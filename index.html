@@ -1716,7 +1716,8 @@ async function handleImportFile(event) {
 
   const BATCH = 50
   let done = 0, errors = 0
-  const uid = currentUser.id
+  const uid = G.user?.id
+  if (!uid) { toast('กรุณาเข้าสู่ระบบก่อนนำเข้า CSV', 'err'); return }
 
   for (let i = 0; i < rows.length; i += BATCH) {
     const batch = rows.slice(i, i + BATCH).map(r => {
@@ -1729,14 +1730,14 @@ async function handleImportFile(event) {
         year:         parseInt(yearRaw) || new Date().getFullYear(),
         month:        month,
         category:     (r['Category'] || r['category'] || '').trim(),
-        sub_category: (r['Sub-Category'] || r['Sub-category'] || r['Item'] || r['sub_category'] || '').trim(),
+        sub_category: (r['Sub-Category (Item)'] || r['Sub-Category'] || r['Sub-category'] || r['Item'] || r['sub_category'] || '').trim(),
         type:         (r['Type'] || r['type'] || 'รายจ่าย').trim(),
         amount:       parseFloat(amountRaw) || 0,
         who:          (r['WHO'] || r['Who'] || r['who'] || 'SKY').trim(),
         status:       (r['Status'] || r['status'] || '').trim(),
         notes:        (r['Notes'] || r['notes'] || null)
       }
-    }).filter(r => r.month && r.year && r.category)
+    }).filter(r => MONTHS.includes(r.month) && r.year && r.category && r.sub_category && ['รายรับ', 'รายจ่าย'].includes(r.type) && Number.isFinite(r.amount) && r.amount >= 0)
 
     const { error } = await db.from('transactions').insert(batch)
     if (error) {
@@ -1752,7 +1753,11 @@ async function handleImportFile(event) {
   } else {
     toast(`นำเข้าสำเร็จ ${done} รายการ`)
   }
-  await loadTransactions()
+  await loadAll()
+  populateDashFilters()
+  populateTxFilters()
+  populateDebtFilters()
+  go('transactions')
 }
 
 function parseCSV(text) {
@@ -1767,7 +1772,7 @@ function parseCSV(text) {
     const vals = parseCSVLine(line)
     if (vals.length === 0) continue
     const row = {}
-    headers.forEach((h, idx) => { row[h.trim()] = (vals[idx] || '').trim() })
+    headers.forEach((h, idx) => { row[h.replace(/^\uFEFF/, '').trim()] = (vals[idx] || '').trim() })
     rows.push(row)
   }
   return rows
