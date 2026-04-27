@@ -765,8 +765,9 @@ async function init() {
   }
   db.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
+      const sameUser = G.user?.id === session.user.id
       G.user = session.user
-      await loadProfileAndEnter()
+      if (!sameUser || !G.profile) await loadProfileAndEnter()
     } else if (event === 'SIGNED_OUT') {
       showAuth()
     }
@@ -775,12 +776,18 @@ async function init() {
 
 async function loadProfileAndEnter() {
   showLoading(true)
-  const { data, error } = await db.from('profiles').select('*').eq('id', G.user.id).single()
-  showLoading(false)
-  if (error || !data) { toast('ไม่พบข้อมูล profile', 'err'); return }
-  G.profile = data
-  if (!data.is_approved) { showPending(); return }
-  await enterApp()
+  try {
+    const { data, error } = await db.from('profiles').select('*').eq('id', G.user.id).single()
+    if (error || !data) { toast('ไม่พบข้อมูล profile', 'err'); return }
+    G.profile = data
+    if (!data.is_approved) { showPending(); return }
+    await enterApp()
+  } catch (err) {
+    console.error('[loadProfileAndEnter error]', err)
+    toast('โหลด profile ล้มเหลว', 'err')
+  } finally {
+    showLoading(false)
+  }
 }
 
 async function doLogin() {
@@ -871,15 +878,21 @@ async function enterApp() {
 // ════════════════════════════════════════════════════════════════════════
 async function loadAll() {
   showLoading(true)
-  const [txRes, dpRes] = await Promise.all([
-    db.from('transactions').select('*').eq('user_id', G.user.id).order('year', {ascending:false}),
-    db.from('debt_plans').select('*').eq('user_id', G.user.id).order('created_at', {ascending:false})
-  ])
-  showLoading(false)
-  if (txRes.error) toast('โหลด transactions ล้มเหลว', 'err')
-  else G.transactions = (txRes.data || []).sort(txSort)
-  if (dpRes.error) toast('โหลด debt plans ล้มเหลว', 'err')
-  else G.debtPlans = dpRes.data || []
+  try {
+    const [txRes, dpRes] = await Promise.all([
+      db.from('transactions').select('*').eq('user_id', G.user.id).order('year', {ascending:false}),
+      db.from('debt_plans').select('*').eq('user_id', G.user.id).order('created_at', {ascending:false})
+    ])
+    if (txRes.error) toast('โหลด transactions ล้มเหลว', 'err')
+    else G.transactions = (txRes.data || []).sort(txSort)
+    if (dpRes.error) toast('โหลด debt plans ล้มเหลว', 'err')
+    else G.debtPlans = dpRes.data || []
+  } catch (err) {
+    console.error('[loadAll error]', err)
+    toast('โหลดข้อมูลล้มเหลว', 'err')
+  } finally {
+    showLoading(false)
+  }
 }
 
 const txSort = (a, b) =>
