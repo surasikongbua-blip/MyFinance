@@ -772,9 +772,19 @@ async function doLogin() {
   const pass  = $('login-pass').value
   if (!email || !pass) return showMsg('login', 'กรุณากรอกอีเมลและรหัสผ่าน')
   showLoading(true)
-  const { error } = await db.auth.signInWithPassword({ email, password: pass })
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass })
   showLoading(false)
-  if (error) showMsg('login', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+  if (error) {
+    console.error('[Login error]', error)
+    // แปล error message ที่พบบ่อย
+    const msg = {
+      'Invalid login credentials':    'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+      'Email not confirmed':           'กรุณายืนยันอีเมลก่อน login',
+      'User not found':                'ไม่พบ user นี้ในระบบ',
+      'Invalid email or password':     'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+    }
+    showMsg('login', msg[error.message] || error.message)
+  }
 }
 
 async function doRegister() {
