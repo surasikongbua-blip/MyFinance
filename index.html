@@ -447,7 +447,11 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <div class="page" id="page-transactions">
       <div class="page-header">
         <div><div class="page-title">📋 รายการทั้งหมด</div><div class="page-sub" id="tx-sub">—</div></div>
-        <button class="btn btn-blue" onclick="openTxModal()">＋ เพิ่มรายการ</button>
+        <div class="toolbar">
+          <button class="btn btn-ghost" onclick="triggerImport()" title="นำเข้าข้อมูลจาก CSV">📥 นำเข้า CSV</button>
+          <button class="btn btn-blue" onclick="openTxModal()">＋ เพิ่มรายการ</button>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="handleImportFile(event)">
       </div>
       <div class="filters">
         <select class="fsel" id="tf-year" onchange="applyTxFilters()"><option value="ALL">ทุกปี</option></select>
@@ -1679,6 +1683,113 @@ const loginPass  = $('login-pass')
 const loginEmail = $('login-email')
 if (loginPass)  loginPass.addEventListener('keydown',  e => { if (e.key === 'Enter') doLogin() })
 if (loginEmail) loginEmail.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
+
+// ════════════════════════════════════════════════════════════════════════
+// CSV IMPORT
+// ════════════════════════════════════════════════════════════════════════
+function triggerImport() {
+  $('csv-file-input').value = ''
+  $('csv-file-input').click()
+}
+
+async function handleImportFile(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const text = await file.text()
+  const rows = parseCSV(text)
+  if (!rows.length) { toast('ไม่พบข้อมูลใน CSV', 'err'); return }
+
+  const total = rows.length
+  const confirmed = confirm(`พบ ${total} รายการ\nต้องการนำเข้าข้อมูลทั้งหมดไหม?`)
+  if (!confirmed) return
+
+  const MONTH_MAP = {
+    '1':'Jan','2':'Feb','3':'Mar','4':'Apr','5':'May','6':'Jun',
+    '7':'Jul','8':'Aug','9':'Sep','10':'Oct','11':'Nov','12':'Dec',
+    'January':'Jan','February':'Feb','March':'Mar','April':'Apr',
+    'May':'May','June':'Jun','July':'Jul','August':'Aug',
+    'September':'Sep','October':'Oct','November':'Nov','December':'Dec',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','Jun':'Jun',
+    'Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Dec'
+  }
+
+  const BATCH = 50
+  let done = 0, errors = 0
+  const uid = currentUser.id
+
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH).map(r => {
+      const monthRaw = (r['Month'] || r['month'] || '').toString().trim()
+      const month = MONTH_MAP[monthRaw] || monthRaw
+      const yearRaw = (r['Year'] || r['year'] || '').toString().trim()
+      const amountRaw = (r['Amount (THB)'] || r['Amount'] || r['amount'] || '0').toString().replace(/,/g,'').trim()
+      return {
+        user_id:      uid,
+        year:         parseInt(yearRaw) || new Date().getFullYear(),
+        month:        month,
+        category:     (r['Category'] || r['category'] || '').trim(),
+        sub_category: (r['Sub-Category'] || r['Sub-category'] || r['Item'] || r['sub_category'] || '').trim(),
+        type:         (r['Type'] || r['type'] || 'รายจ่าย').trim(),
+        amount:       parseFloat(amountRaw) || 0,
+        who:          (r['WHO'] || r['Who'] || r['who'] || 'SKY').trim(),
+        status:       (r['Status'] || r['status'] || '').trim(),
+        notes:        (r['Notes'] || r['notes'] || null)
+      }
+    }).filter(r => r.month && r.year && r.category)
+
+    const { error } = await db.from('transactions').insert(batch)
+    if (error) {
+      console.error('[Import batch error]', error)
+      errors += batch.length
+    } else {
+      done += batch.length
+    }
+  }
+
+  if (errors > 0) {
+    toast(`นำเข้าสำเร็จ ${done} รายการ, ผิดพลาด ${errors} รายการ`, 'err')
+  } else {
+    toast(`นำเข้าสำเร็จ ${done} รายการ`)
+  }
+  await loadTransactions()
+}
+
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
+  if (lines.length < 2) return []
+
+  const headers = parseCSVLine(lines[0])
+  const rows = []
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (!line) continue
+    const vals = parseCSVLine(line)
+    if (vals.length === 0) continue
+    const row = {}
+    headers.forEach((h, idx) => { row[h.trim()] = (vals[idx] || '').trim() })
+    rows.push(row)
+  }
+  return rows
+}
+
+function parseCSVLine(line) {
+  const result = []
+  let cur = '', inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuote && line[i+1] === '"') { cur += '"'; i++ }
+      else inQuote = !inQuote
+    } else if (ch === ',' && !inQuote) {
+      result.push(cur); cur = ''
+    } else {
+      cur += ch
+    }
+  }
+  result.push(cur)
+  return result
+}
 
 // ════════════════════════════════════════════════════════════════════════
 // BOOT
