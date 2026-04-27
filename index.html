@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Tracker · SK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── TOKENS ───────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #0c0e14;
+  --surface:   #12151f;
+  --surface2:  #181c28;
+  --surface3:  #1f2436;
+  --line:      #252d42;
+  --line2:     #1c2235;
+  --blue:      #3d8ef0;
+  --blue-dim:  rgba(61,142,240,.13);
+  --green:     #34d17a;
+  --green-dim: rgba(52,209,122,.13);
+  --red:       #f0524a;
+  --red-dim:   rgba(240,82,74,.13);
+  --amber:     #f0b432;
+  --amber-dim: rgba(240,180,50,.12);
+  --purple:    #9b6cf0;
+  --text:      #dde2f0;
+  --text2:     #7a86a8;
+  --text3:     #424d6b;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'Noto Sans Thai', sans-serif;
+  --r:         12px;
+  --r2:        8px;
+  --r3:        6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+a{color:inherit;text-decoration:none}
+
+/* ── AUTH SCREEN ────────────────────────────────────────────────────────── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 30% 20%,rgba(61,142,240,.07) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(155,108,240,.05) 0%,transparent 60%)}
+.auth-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:36px 32px}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.auth-logo-mark{width:44px;height:44px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.auth-logo-text{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.auth-logo-sub{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.auth-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--r2);padding:4px;margin-bottom:24px}
+.auth-tab{flex:1;padding:8px;text-align:center;border-radius:var(--r3);cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:all .18s}
+.auth-tab.on{background:var(--blue);color:#fff}
+.auth-form{display:none}.auth-form.on{display:block}
+.auth-msg{font-size:12px;padding:10px 14px;border-radius:var(--r2);margin-bottom:14px;display:none}
+.auth-msg.err{background:var(--red-dim);color:var(--red);border:1px solid rgba(240,82,74,.25);display:block}
+.auth-msg.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(52,209,122,.25);display:block}
+
+/* ── PENDING SCREEN ─────────────────────────────────────────────────────── */
+.pending-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.pending-card{max-width:400px;width:100%;text-align:center;background:var(--surface);border:1px solid var(--amber-dim);border-radius:16px;padding:40px 32px}
+.pending-icon{font-size:48px;margin-bottom:16px}
+.pending-title{font-size:18px;font-weight:800;color:var(--amber);margin-bottom:8px}
+.pending-sub{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px}
+
+/* ── APP SHELL ──────────────────────────────────────────────────────────── */
+.shell{display:flex;min-height:100vh}
+.rail{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto}
+.main{margin-left:220px;flex:1;padding:28px 32px;min-width:0;max-width:1400px}
+
+/* ── RAIL ───────────────────────────────────────────────────────────────── */
+.brand{padding:20px 18px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.brand-mark{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.brand-text{font-size:13px;font-weight:800;line-height:1.2}
+.brand-sub{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.rail-section{padding:14px 14px 4px;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--text3);text-transform:uppercase}
+.nav-link{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r2);margin:1px 8px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;user-select:none}
+.nav-link:hover{color:var(--text);background:var(--surface3)}
+.nav-link.on{color:var(--blue);background:var(--blue-dim);font-weight:600}
+.nav-ico{font-size:14px;width:17px;text-align:center;flex-shrink:0}
+.rail-foot{padding:12px 16px;border-top:1px solid var(--line);margin-top:auto}
+.rail-user{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rail-role{font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:8px}
+
+/* ── PAGE ───────────────────────────────────────────────────────────────── */
+.page{display:none}.page.on{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.page-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r2);border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);transition:all .18s;white-space:nowrap}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{filter:brightness(1.12)}
+.btn-green{background:var(--green);color:#0c0e14}.btn-green:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text2)}.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+.btn-red{background:transparent;border:1px solid rgba(240,82,74,.3);color:var(--red)}.btn-red:hover{background:var(--red-dim)}
+.btn-amber{background:var(--amber);color:#0c0e14}.btn-amber:hover{filter:brightness(1.08)}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+
+/* ── FORM ELEMENTS ──────────────────────────────────────────────────────── */
+.fi,.fs,.fta{background:var(--surface2);border:1px solid var(--line);color:var(--text);border-radius:var(--r2);padding:9px 12px;font-size:13px;font-family:var(--sans);outline:none;transition:border-color .18s;width:100%}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(61,142,240,.1)}
+.fi:disabled,.fs:disabled{opacity:.4;cursor:not-allowed}
+.fi[readonly]{background:var(--surface3);cursor:default}
+.flabel{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px}
+.fhint{font-size:11px;color:var(--text3);margin-top:3px}
+.fhint.blue{color:var(--blue)}
+.fhint.amber{color:var(--amber)}
+.fg{display:flex;flex-direction:column}
+.fg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg.full{grid-column:1/-1}
+.fradio-group{display:flex;gap:8px}
+.fradio{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--line);border-radius:var(--r2);cursor:pointer;font-size:13px;transition:all .15s;flex:1;justify-content:center;font-family:var(--sans)}
+.fradio:has(input:checked){border-color:var(--blue);background:var(--blue-dim);color:var(--blue);font-weight:600}
+.fradio input{display:none}
+
+/* ── FILTERS BAR ────────────────────────────────────────────────────────── */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.fsel{background:var(--surface2);border:1px solid var(--line);color:var(--text);border-radius:var(--r2);padding:7px 10px;font-size:12px;font-family:var(--sans);outline:none;transition:border-color .18s;cursor:pointer}
+.fsel:focus{border-color:var(--blue)}
+.fsearch{background:var(--surface2);border:1px solid var(--line);color:var(--text);border-radius:var(--r2);padding:7px 12px;font-size:12px;font-family:var(--sans);outline:none;transition:border-color .18s;min-width:180px}
+.fsearch:focus{border-color:var(--blue)}
+
+/* ── KPI CARDS ──────────────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0}
+.kpi-inc::after{background:var(--green)}
+.kpi-exp::after{background:var(--red)}
+.kpi-bal::after{background:var(--blue)}
+.kpi-pend::after{background:var(--amber)}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.kpi-val{font-size:19px;font-weight:700;font-family:var(--mono);letter-spacing:-.5px}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:3px}
+.c-green{color:var(--green)}
+.c-red{color:var(--red)}
+.c-blue{color:var(--blue)}
+.c-amber{color:var(--amber)}
+.c-purple{color:var(--purple)}
+
+/* ── CARDS ──────────────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.grid1{margin-bottom:20px}
+
+/* ── CHARTS ─────────────────────────────────────────────────────────────── */
+.bar-list{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-lbl{width:130px;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.bar-val{width:80px;text-align:right;font-size:11px;font-family:var(--mono);color:var(--text);flex-shrink:0}
+.month-chart{display:flex;align-items:flex-end;gap:6px;height:120px;padding:8px 0 0;overflow-x:auto}
+.mc-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:40px}
+.mc-bars{display:flex;gap:2px;align-items:flex-end;height:90px}
+.mc-bar{width:14px;border-radius:2px 2px 0 0;cursor:pointer;position:relative;transition:opacity .2s}
+.mc-bar:hover{opacity:.8}
+.mc-bar:hover::after{content:attr(data-tip);position:absolute;bottom:105%;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--line);padding:4px 8px;border-radius:6px;font-size:11px;white-space:nowrap;color:var(--text);z-index:30;font-family:var(--mono);pointer-events:none}
+.mc-lbl{font-size:9px;color:var(--text3);text-align:center;white-space:nowrap}
+
+/* ── TABLE ──────────────────────────────────────────────────────────────── */
+.tbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
+.tbox-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap}
+.tbox-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3)}
+.tcount{font-size:11px;color:var(--text3);background:var(--surface3);padding:2px 9px;border-radius:20px;font-family:var(--mono)}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);background:var(--surface2);white-space:nowrap;position:sticky;top:0}
+tbody tr{border-bottom:1px solid var(--line2);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(61,142,240,.04)}
+tbody td{padding:8px 12px;font-size:13px}
+tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);background:var(--surface2)}
+.pag{display:flex;align-items:center;gap:5px;padding:10px 14px;border-top:1px solid var(--line);justify-content:flex-end;flex-wrap:wrap}
+.pgbtn{min-width:28px;height:28px;padding:0 6px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text2);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;font-family:var(--mono)}
+.pgbtn:hover{border-color:var(--blue);color:var(--blue)}
+.pgbtn.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pginfo{font-size:10px;color:var(--text3);margin:0 6px;font-family:var(--mono)}
+
+/* ── BADGES ─────────────────────────────────────────────────────────────── */
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.tag-inc{background:var(--green-dim);color:var(--green)}
+.tag-exp{background:var(--red-dim);color:var(--red)}
+.tag-paid{background:var(--green-dim);color:var(--green)}
+.tag-recv{background:var(--blue-dim);color:var(--blue)}
+.tag-pend{background:var(--amber-dim);color:var(--amber)}
+.tag-admin{background:rgba(155,108,240,.15);color:var(--purple)}
+.tag-member{background:var(--surface3);color:var(--text2)}
+.tag-approved{background:var(--green-dim);color:var(--green)}
+.tag-waiting{background:var(--amber-dim);color:var(--amber)}
+.amt-inc{color:var(--green);font-family:var(--mono);font-weight:600}
+.amt-exp{color:var(--red);font-family:var(--mono);font-weight:600}
+.status-btn{cursor:pointer;border:none;font-family:var(--sans);background:transparent;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;transition:filter .15s}
+.status-btn:hover{filter:brightness(1.2)}
+
+/* ── DEBT PLAN CARDS ─────────────────────────────────────────────────────── */
+.debt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:20px}
+.debt-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
+.debt-card:hover{border-color:rgba(61,142,240,.3)}
+.debt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.debt-card.sky::before{background:linear-gradient(90deg,var(--blue),var(--purple))}
+.debt-card.other::before{background:linear-gradient(90deg,var(--amber),var(--red))}
+.debt-card.done::before{background:linear-gradient(90deg,var(--green),#1a9e5c)}
+.debt-card.inactive::before{background:var(--line)}
+.debt-name{font-size:15px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.debt-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:12px}
+.debt-progress-wrap{margin-bottom:12px}
+.debt-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px}
+.debt-progress-track{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.debt-progress-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.debt-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.debt-stat{background:var(--surface2);border-radius:var(--r2);padding:8px 10px}
+.debt-stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:2px}
+.debt-stat-val{font-size:13px;font-weight:700;font-family:var(--mono)}
+.debt-actions{display:flex;gap:6px;padding-top:10px;border-top:1px solid var(--line2)}
+
+/* ── MODAL ──────────────────────────────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+.overlay.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;position:relative}
+.modal-lg{max-width:640px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{border-color:var(--red);color:var(--red)}
+.form-actions{display:flex;gap:9px;margin-top:20px;flex-wrap:wrap}
+
+/* ── CONFIRM DIALOG ─────────────────────────────────────────────────────── */
+.confirm-modal{max-width:380px;text-align:center}
+.confirm-icon{font-size:40px;margin-bottom:12px}
+.confirm-msg{font-size:14px;color:var(--text2);margin-bottom:6px}
+.confirm-detail{font-size:12px;color:var(--text3);margin-bottom:20px}
+
+/* ── TOAST ──────────────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:9px;box-shadow:0 16px 48px rgba(0,0,0,.5);transform:translateY(70px) scale(.95);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);z-index:999;min-width:240px;pointer-events:none}
+.toast.on{transform:none;opacity:1}
+.toast-ico{font-size:16px;flex-shrink:0}
+.toast-msg{font-size:13px}
+
+/* ── LOADING ────────────────────────────────────────────────────────────── */
+.loading-overlay{position:fixed;inset:0;background:rgba(12,14,20,.7);z-index:800;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;backdrop-filter:blur(1px)}
+.loading-overlay.hidden{display:none}
+.spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:12px;color:var(--text2)}
+
+/* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-ico{font-size:36px;margin-bottom:10px}
+.empty-msg{font-size:13px;margin-bottom:16px}
+
+/* ── GOOGLE BUTTON ──────────────────────────────────────────────────────── */
+.btn-google{background:#fff;color:#3c4043;border:1px solid #dadce0;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 16px;border-radius:var(--r2);cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);transition:all .18s;margin-bottom:0}
+.btn-google:hover{background:#f8f9fa;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.btn-google:active{background:#e8eaed}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--text3);font-size:11px;letter-spacing:.05em}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* ── ADMIN PAGE ─────────────────────────────────────────────────────────── */
+.user-row-pending{background:rgba(240,180,50,.04)}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .rail{transform:translateX(-100%);transition:transform .25s}
+  .rail.open{transform:none}
+  .main{margin-left:0;padding:16px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .debt-grid{grid-template-columns:1fr}
+  .fg-grid{grid-template-columns:1fr}
+  .fg.full{grid-column:1}
+}
+.hamburger{display:none;position:fixed;top:12px;left:12px;z-index:200;width:36px;height:36px;background:var(--surface);border:1px solid var(--line);border-radius:8px;align-items:center;justify-content:center;cursor:pointer;font-size:18px}
+@media(max-width:700px){.hamburger{display:flex}}
+</style>
+</head>
+<body>
+
+<!-- ══ LOADING OVERLAY ══════════════════════════════════════════════════ -->
+<div class="loading-overlay hidden" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-txt">กำลังโหลด...</div>
+</div>
+
+<!-- ══ AUTH SCREEN ══════════════════════════════════════════════════════ -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">💰</div>
+      <div>
+        <div class="auth-logo-text">Finance Tracker</div>
+        <div class="auth-logo-sub">SK · Personal Finance</div>
+      </div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab on" id="tab-login" onclick="switchTab('login')">เข้าสู่ระบบ</div>
+      <div class="auth-tab" id="tab-register" onclick="switchTab('register')">สมัครสมาชิก</div>
+    </div>
+
+    <!-- Login Form -->
+    <div class="auth-form on" id="form-login">
+      <div class="auth-msg" id="login-msg"></div>
+      <div class="fg" style="margin-bottom:12px">
+        <label class="flabel">อีเมล</label>
+        <input class="fi" id="login-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="fg" style="margin-bottom:20px">
+        <label class="flabel">รหัสผ่าน</label>
+        <input class="fi" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-blue" style="width:100%;justify-content:center" onclick="doLogin()">เข้าสู่ระบบ</button>
+      <div class="auth-divider">หรือ</div>
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- Register Form -->
+    <div class="auth-form" id="form-register">
+      <div class="auth-msg" id="register-msg"></div>
+      <div class="fg" style="margin-bottom:12px">
+        <label class="flabel">ชื่อที่แสดง</label>
+        <input class="fi" id="reg-name" type="text" placeholder="ชื่อ-นามสกุล หรือ Nickname">
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label class="flabel">อีเมล</label>
+        <input class="fi" id="reg-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="fg" style="margin-bottom:20px">
+        <label class="flabel">รหัสผ่าน</label>
+        <input class="fi" id="reg-pass" type="password" placeholder="อย่างน้อย 8 ตัวอักษร" autocomplete="new-password">
+      </div>
+      <button class="btn btn-blue" style="width:100%;justify-content:center" onclick="doRegister()">สมัครสมาชิก</button>
+      <div class="auth-divider">หรือสมัครด้วย</div>
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+      <p style="font-size:11px;color:var(--text3);margin-top:12px;text-align:center">
+        ไม่ว่าจะสมัครแบบไหน ต้องรอ admin อนุมัติก่อนจึงจะเข้าใช้งานได้
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PENDING SCREEN ════════════════════════════════════════════════════ -->
+<div id="pending-screen" class="pending-wrap hidden">
+  <div class="pending-card">
+    <div class="pending-icon">⏳</div>
+    <div class="pending-title">รอการอนุมัติ</div>
+    <div class="pending-sub">
+      บัญชีของคุณกำลังรอ admin อนุมัติ<br>
+      กรุณารอสักครู่ แล้วลอง login ใหม่อีกครั้ง
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-ghost btn-sm" onclick="checkAndEnter()">🔄 ตรวจสอบสถานะ</button>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HAMBURGER ═════════════════════════════════════════════════════════ -->
+<div class="hamburger" id="hamburger" onclick="toggleRail()">☰</div>
+
+<!-- ══ APP SHELL ═════════════════════════════════════════════════════════ -->
+<div id="app" class="shell hidden">
+
+  <!-- RAIL -->
+  <aside class="rail" id="rail">
+    <div class="brand">
+      <div class="brand-mark">💰</div>
+      <div><div class="brand-text">Finance Tracker</div><div class="brand-sub">SK · Personal</div></div>
+    </div>
+
+    <div class="rail-section">ภาพรวม</div>
+    <div class="nav-link on" data-nav="dashboard" onclick="go('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
+    <div class="nav-link" data-nav="monthly" onclick="go('monthly')"><span class="nav-ico">📅</span>สรุปรายเดือน</div>
+
+    <div class="rail-section">รายการ</div>
+    <div class="nav-link" data-nav="transactions" onclick="go('transactions')"><span class="nav-ico">📋</span>รายการทั้งหมด</div>
+
+    <div class="rail-section">หนี้ / ผ่อน</div>
+    <div class="nav-link" data-nav="debts" onclick="go('debts')"><span class="nav-ico">🗂️</span>แผนผ่อนชำระ</div>
+
+    <div class="nav-link" id="nav-admin" data-nav="admin" onclick="go('admin')" style="display:none">
+      <span class="nav-ico">⚙️</span>จัดการผู้ใช้
+    </div>
+
+    <div class="rail-foot">
+      <div class="rail-user" id="rail-name">—</div>
+      <div class="rail-role" id="rail-role">—</div>
+      <button class="btn btn-ghost btn-xs" style="width:100%;justify-content:center" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ═══ DASHBOARD ═══════════════════════════════════════════════════ -->
+    <div class="page on" id="page-dashboard">
+      <div class="page-header">
+        <div><div class="page-title">📊 Dashboard</div><div class="page-sub" id="dash-sub">ภาพรวมทางการเงิน</div></div>
+        <div class="toolbar">
+          <select class="fsel" id="d-year" onchange="renderDash()"><option value="ALL">ทุกปี</option></select>
+          <select class="fsel" id="d-month" onchange="renderDash()">
+            <option value="ALL">ทุกเดือน</option>
+            <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+            <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+            <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+          </select>
+          <select class="fsel" id="d-who" onchange="renderDash()"><option value="ALL">ทุกคน</option></select>
+        </div>
+      </div>
+      <div class="kpi-grid" id="dash-kpi">
+        <div class="kpi" style="grid-column:1/-1">
+          <div class="empty"><div class="empty-ico">📂</div><div class="empty-msg">กำลังโหลดข้อมูล...</div></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-title">รายจ่ายแยกหมวด</div><div id="c-cat"></div></div>
+        <div class="card"><div class="card-title">ยอดหนี้คงค้าง (แผนผ่อน)</div><div id="c-debt"></div></div>
+      </div>
+      <div class="card grid1"><div class="card-title">รายรับ vs รายจ่าย รายเดือน</div><div id="c-monthly"></div></div>
+    </div>
+
+    <!-- ═══ MONTHLY SUMMARY ══════════════════════════════════════════════ -->
+    <div class="page" id="page-monthly">
+      <div class="page-header">
+        <div><div class="page-title">📅 สรุปรายเดือน</div><div class="page-sub">ภาพรวมแต่ละเดือน</div></div>
+        <div class="toolbar">
+          <select class="fsel" id="m-year" onchange="renderMonthly()"><option value="ALL">ทุกปี</option></select>
+          <select class="fsel" id="m-who" onchange="renderMonthly()"><option value="ALL">ทุกคน</option></select>
+        </div>
+      </div>
+      <div id="monthly-content"></div>
+    </div>
+
+    <!-- ═══ TRANSACTIONS ════════════════════════════════════════════════ -->
+    <div class="page" id="page-transactions">
+      <div class="page-header">
+        <div><div class="page-title">📋 รายการทั้งหมด</div><div class="page-sub" id="tx-sub">—</div></div>
+        <button class="btn btn-blue" onclick="openTxModal()">＋ เพิ่มรายการ</button>
+      </div>
+      <div class="filters">
+        <select class="fsel" id="tf-year" onchange="applyTxFilters()"><option value="ALL">ทุกปี</option></select>
+        <select class="fsel" id="tf-month" onchange="applyTxFilters()">
+          <option value="ALL">ทุกเดือน</option>
+          <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+          <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+          <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+        </select>
+        <select class="fsel" id="tf-type" onchange="applyTxFilters()">
+          <option value="ALL">ทุกประเภท</option>
+          <option value="รายรับ">รายรับ</option>
+          <option value="รายจ่าย">รายจ่าย</option>
+        </select>
+        <select class="fsel" id="tf-cat" onchange="applyTxFilters()"><option value="ALL">ทุกหมวด</option></select>
+        <select class="fsel" id="tf-who" onchange="applyTxFilters()"><option value="ALL">ทุกคน</option></select>
+        <select class="fsel" id="tf-status" onchange="applyTxFilters()">
+          <option value="ALL">ทุกสถานะ</option>
+          <option value="done">จ่าย/รับแล้ว</option>
+          <option value="pending">ค้างอยู่</option>
+        </select>
+        <input class="fsearch" id="tf-search" placeholder="🔍 ค้นหารายการ..." oninput="applyTxFilters()">
+      </div>
+      <div class="tbox">
+        <div class="tbox-head">
+          <span class="tbox-title">รายการ</span>
+          <span class="tcount" id="tx-count">0 รายการ</span>
+        </div>
+        <div class="tscroll">
+          <table>
+            <thead><tr>
+              <th>เดือน/ปี</th><th>หมวด</th><th>รายการ</th><th>ประเภท</th>
+              <th style="text-align:right">จำนวนเงิน</th><th>ใคร</th><th>สถานะ</th><th>แผนผ่อน</th><th></th>
+            </tr></thead>
+            <tbody id="tx-tbody"></tbody>
+            <tfoot id="tx-tfoot"></tfoot>
+          </table>
+        </div>
+        <div class="pag" id="tx-pag"></div>
+      </div>
+    </div>
+
+    <!-- ═══ DEBT PLANS ═══════════════════════════════════════════════════ -->
+    <div class="page" id="page-debts">
+      <div class="page-header">
+        <div><div class="page-title">🗂️ แผนผ่อนชำระ</div><div class="page-sub">ติดตามหนี้ผ่อนทุกรายการ</div></div>
+        <button class="btn btn-blue" onclick="openDebtModal()">＋ เพิ่มแผนผ่อน</button>
+      </div>
+      <div class="kpi-grid" id="debt-kpi"></div>
+      <div class="filters">
+        <select class="fsel" id="df-who" onchange="renderDebts()"><option value="ALL">ทุกคน</option></select>
+        <select class="fsel" id="df-status" onchange="renderDebts()">
+          <option value="ALL">ทุกสถานะ</option>
+          <option value="active">กำลังผ่อน</option>
+          <option value="done">ชำระครบ</option>
+          <option value="inactive">ปิดแล้ว</option>
+        </select>
+      </div>
+      <div class="debt-grid" id="debt-grid"></div>
+    </div>
+
+    <!-- ═══ ADMIN ════════════════════════════════════════════════════════ -->
+    <div class="page" id="page-admin">
+      <div class="page-header">
+        <div><div class="page-title">⚙️ จัดการผู้ใช้</div><div class="page-sub">อนุมัติหรือยกเลิกสิทธิ์สมาชิก</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="renderAdmin()">↻ รีเฟรช</button>
+      </div>
+      <div class="tbox">
+        <div class="tbox-head">
+          <span class="tbox-title">รายชื่อสมาชิก</span>
+          <span class="tcount" id="admin-count">—</span>
+        </div>
+        <div class="tscroll">
+          <table>
+            <thead><tr>
+              <th>ชื่อ</th><th>อีเมล</th><th>Role</th><th>สถานะ</th><th>สมัครเมื่อ</th><th>จัดการ</th>
+            </tr></thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ MODAL: TRANSACTION ═════════════════════════════════════════════════ -->
+<div class="overlay hidden" id="overlay-tx">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="tx-modal-title">เพิ่มรายการ</span>
+      <button class="modal-close" onclick="closeTxModal()">✕</button>
+    </div>
+    <form id="form-tx" onsubmit="saveTx(event)">
+      <input type="hidden" id="tx-id">
+      <div class="fg-grid">
+        <div class="fg">
+          <label class="flabel">ปี</label>
+          <input class="fi" id="tx-year" type="number" min="2020" max="2099" required>
+        </div>
+        <div class="fg">
+          <label class="flabel">เดือน</label>
+          <select class="fs" id="tx-month" required>
+            <option value="">-- เลือก --</option>
+            <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+            <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+            <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <label class="flabel">ประเภท</label>
+          <div class="fradio-group">
+            <label class="fradio"><input type="radio" name="tx-type" value="รายจ่าย" checked>💸 รายจ่าย</label>
+            <label class="fradio"><input type="radio" name="tx-type" value="รายรับ">💚 รายรับ</label>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flabel">หมวดหมู่</label>
+          <input class="fi" id="tx-cat" list="cat-list" placeholder="Shopee, บัตรเครดิต..." required>
+          <datalist id="cat-list">
+            <option value="Shopee"><option value="คชจ.จำเป็น">
+            <option value="บัตรเครดิต"><option value="รายรับ"><option value="อื่นๆ">
+          </datalist>
+        </div>
+        <div class="fg">
+          <label class="flabel">รายการ / ชื่อสินค้า</label>
+          <input class="fi" id="tx-sub" type="text" placeholder="เช่น iPhone 15 Pro, ค่าน้ำมัน..." required>
+        </div>
+        <div class="fg">
+          <label class="flabel">จำนวนเงิน (บาท)</label>
+          <input class="fi" id="tx-amount" type="number" min="0" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="fg">
+          <label class="flabel">ของใคร (WHO)</label>
+          <input class="fi" id="tx-who" type="text" placeholder="SKY, NATT..." value="SKY" required>
+        </div>
+        <div class="fg">
+          <label class="flabel">สถานะ</label>
+          <select class="fs" id="tx-status">
+            <option value="">ค้างอยู่</option>
+            <option value="จ่ายแล้ว">จ่ายแล้ว</option>
+            <option value="ได้รับแล้ว">ได้รับแล้ว</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">แผนผ่อน (ถ้ามี)</label>
+          <select class="fs" id="tx-debt-plan">
+            <option value="">— ไม่มี —</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <label class="flabel">หมายเหตุ</label>
+          <textarea class="fta" id="tx-notes" rows="2" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-blue" id="tx-submit-btn">บันทึกรายการ</button>
+        <button type="button" class="btn btn-ghost" onclick="closeTxModal()">ยกเลิก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MODAL: DEBT PLAN ═══════════════════════════════════════════════════ -->
+<div class="overlay hidden" id="overlay-debt">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="debt-modal-title">เพิ่มแผนผ่อนชำระ</span>
+      <button class="modal-close" onclick="closeDebtModal()">✕</button>
+    </div>
+    <form id="form-debt" onsubmit="saveDebt(event)">
+      <input type="hidden" id="debt-id">
+      <div class="fg-grid">
+        <div class="fg full">
+          <label class="flabel">ชื่อรายการผ่อน</label>
+          <input class="fi" id="debt-name" type="text" placeholder="เช่น iPhone 15 Pro, TV Samsung 75..." required>
+        </div>
+        <div class="fg">
+          <label class="flabel">หมวดหมู่</label>
+          <select class="fs" id="debt-cat">
+            <option value="บัตรเครดิต">บัตรเครดิต</option>
+            <option value="Shopee">Shopee</option>
+            <option value="คชจ.จำเป็น">คชจ.จำเป็น</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">ของใคร (WHO)</label>
+          <input class="fi" id="debt-who" type="text" placeholder="SKY, NATT..." value="SKY" required>
+        </div>
+        <div class="fg">
+          <label class="flabel">ยอดรวมทั้งหมด (บาท)</label>
+          <input class="fi" id="debt-total" type="number" min="0" step="0.01" placeholder="0.00" oninput="calcDebtForm()">
+        </div>
+        <div class="fg">
+          <label class="flabel">จำนวนเดือน (งวด)</label>
+          <input class="fi" id="debt-months" type="number" min="1" max="360" placeholder="12" required oninput="calcDebtForm()">
+        </div>
+        <div class="fg">
+          <label class="flabel">ผ่อนต่อเดือน (บาท)</label>
+          <input class="fi" id="debt-monthly" type="number" min="0" step="0.01" placeholder="คำนวณอัตโนมัติ" oninput="calcDebtFormFromMonthly()">
+          <span class="fhint blue" id="debt-monthly-hint">กรอก ยอดรวม ÷ จำนวนงวด</span>
+        </div>
+        <div class="fg">
+          <label class="flabel">เริ่มเดือน</label>
+          <select class="fs" id="debt-start-month" onchange="calcDebtForm()" required>
+            <option value="">-- เลือก --</option>
+            <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+            <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+            <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">เริ่มปี</label>
+          <input class="fi" id="debt-start-year" type="number" min="2020" max="2099" oninput="calcDebtForm()" required>
+        </div>
+        <div class="fg">
+          <label class="flabel">สิ้นสุดเดือน</label>
+          <input class="fi" id="debt-end-month" readonly placeholder="คำนวณอัตโนมัติ">
+        </div>
+        <div class="fg">
+          <label class="flabel">สิ้นสุดปี</label>
+          <input class="fi" id="debt-end-year" readonly placeholder="คำนวณอัตโนมัติ">
+        </div>
+        <div class="fg full">
+          <label class="flabel">หมายเหตุ</label>
+          <textarea class="fta" id="debt-notes" rows="2" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+        </div>
+        <div class="fg full">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)">
+            <input type="checkbox" id="debt-active" checked style="width:16px;height:16px;cursor:pointer">
+            แผนนี้ยังใช้งานอยู่ (Active)
+          </label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-blue" id="debt-submit-btn">บันทึกแผนผ่อน</button>
+        <button type="button" class="btn btn-ghost" onclick="closeDebtModal()">ยกเลิก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFIRM DELETE ══════════════════════════════════════════════ -->
+<div class="overlay hidden" id="overlay-confirm">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon">🗑️</div>
+    <div class="modal-title" style="text-align:center;margin-bottom:8px">ยืนยันการลบ</div>
+    <div class="confirm-msg" id="confirm-msg">คุณต้องการลบรายการนี้?</div>
+    <div class="confirm-detail" id="confirm-detail"></div>
+    <div class="form-actions" style="justify-content:center">
+      <button class="btn btn-red" id="confirm-ok-btn">ลบ</button>
+      <button class="btn btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ═════════════════════════════════════════════════════════════ -->
+<div class="toast" id="toast">
+  <span class="toast-ico" id="toast-ico">✓</span>
+  <span class="toast-msg" id="toast-msg"></span>
+</div>
+
+<!-- ══ SCRIPT ════════════════════════════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// CONFIG — แก้ตรงนี้ด้วย URL และ Key จาก Supabase Dashboard
+// Project Settings → API → Project URL และ anon/public key
+// ════════════════════════════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://jiwpbwfbkblsfymouzsn.supabase.co'   // ← แก้
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imppd3Bid2Zia2Jsc2Z5bW91enNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjI1MTQsImV4cCI6MjA5MjUzODUxNH0.nWBAQkojHc-ILA71IJJhUtyBcNW7a9bgEZbUiZaHU4A'                  // ← แก้
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────
+const MONTHS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTH_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+const CAT_COLORS = {
+  'Shopee':'#3d8ef0', 'คชจ.จำเป็น':'#f0524a',
+  'บัตรเครดิต':'#f0b432', 'รายรับ':'#34d17a', 'อื่นๆ':'#9b6cf0'
+}
+const TX_PER_PAGE = 50
+
+// ── INIT ───────────────────────────────────────────────────────────────
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// ── STATE ──────────────────────────────────────────────────────────────
+let G = {
+  user: null, profile: null,
+  transactions: [], debtPlans: [],
+  txFiltered: [], txPage: 1,
+  page: 'dashboard',
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════════════════
+async function init() {
+  const { data: { session } } = await db.auth.getSession()
+  if (session?.user) {
+    G.user = session.user
+    await loadProfileAndEnter()
+  }
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      G.user = session.user
+      await loadProfileAndEnter()
+    } else if (event === 'SIGNED_OUT') {
+      showAuth()
+    }
+  })
+}
+
+async function loadProfileAndEnter() {
+  showLoading(true)
+  const { data, error } = await db.from('profiles').select('*').eq('id', G.user.id).single()
+  showLoading(false)
+  if (error || !data) { toast('ไม่พบข้อมูล profile', 'err'); return }
+  G.profile = data
+  if (!data.is_approved) { showPending(); return }
+  await enterApp()
+}
+
+async function doLogin() {
+  const email = $('login-email').value.trim()
+  const pass  = $('login-pass').value
+  if (!email || !pass) return showMsg('login', 'กรุณากรอกอีเมลและรหัสผ่าน')
+  showLoading(true)
+  const { error } = await db.auth.signInWithPassword({ email, password: pass })
+  showLoading(false)
+  if (error) showMsg('login', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+}
+
+async function doRegister() {
+  const name  = $('reg-name').value.trim()
+  const email = $('reg-email').value.trim()
+  const pass  = $('reg-pass').value
+  if (!name || !email || !pass) return showMsg('register', 'กรุณากรอกข้อมูลให้ครบ')
+  if (pass.length < 8) return showMsg('register', 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+  showLoading(true)
+  const { error } = await db.auth.signUp({
+    email, password: pass,
+    options: { data: { display_name: name } }
+  })
+  showLoading(false)
+  if (error) { showMsg('register', error.message, 'err'); return }
+  showMsg('register', '✓ สมัครสมาชิกสำเร็จ! รอ admin อนุมัติก่อนเข้าใช้งานได้', 'ok')
+  $('reg-name').value = $('reg-email').value = $('reg-pass').value = ''
+}
+
+async function doGoogleLogin() {
+  const msgEl = document.querySelector('.auth-form.on .auth-msg')
+  showLoading(true)
+  const { error } = await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+      queryParams: { prompt: 'select_account' }
+    }
+  })
+  showLoading(false)
+  if (error) {
+    if (msgEl) { msgEl.textContent = 'Google login ล้มเหลว: ' + error.message; msgEl.className = 'auth-msg err' }
+  }
+  // ถ้าสำเร็จ Supabase จะ redirect ไป Google แล้วกลับมาที่หน้านี้อัตโนมัติ
+  // onAuthStateChange จะจัดการต่อเอง
+}
+
+async function doLogout() {
+  await db.auth.signOut()
+  G.user = G.profile = null
+  G.transactions = []; G.debtPlans = []
+  showAuth()
+}
+
+async function checkAndEnter() {
+  if (!G.user) { showAuth(); return }
+  await loadProfileAndEnter()
+}
+
+// ── SCREEN SWITCHES ────────────────────────────────────────────────────
+function showAuth()    { show('auth-screen'); hide('pending-screen'); hide('app') }
+function showPending() { hide('auth-screen'); show('pending-screen'); hide('app') }
+
+async function enterApp() {
+  hide('auth-screen'); hide('pending-screen'); show('app')
+  $('rail-name').textContent = G.profile.display_name
+  $('rail-role').textContent = G.profile.role === 'admin' ? '👑 Admin' : '👤 Member'
+  if (G.profile.role === 'admin') $('nav-admin').style.display = ''
+  await loadAll()
+  populateDashFilters()
+  populateTxFilters()
+  populateDebtFilters()
+  go('dashboard')
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ════════════════════════════════════════════════════════════════════════
+async function loadAll() {
+  showLoading(true)
+  const [txRes, dpRes] = await Promise.all([
+    db.from('transactions').select('*').eq('user_id', G.user.id).order('year', {ascending:false}),
+    db.from('debt_plans').select('*').eq('user_id', G.user.id).order('created_at', {ascending:false})
+  ])
+  showLoading(false)
+  if (txRes.error) toast('โหลด transactions ล้มเหลว', 'err')
+  else G.transactions = (txRes.data || []).sort(txSort)
+  if (dpRes.error) toast('โหลด debt plans ล้มเหลว', 'err')
+  else G.debtPlans = dpRes.data || []
+}
+
+const txSort = (a, b) =>
+  b.year - a.year || MONTHS.indexOf(b.month) - MONTHS.indexOf(a.month) ||
+  a.category.localeCompare(b.category)
+
+// ════════════════════════════════════════════════════════════════════════
+// ROUTER
+// ════════════════════════════════════════════════════════════════════════
+function go(page) {
+  G.page = page
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('on'))
+  document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('on'))
+  $('page-' + page)?.classList.add('on')
+  document.querySelector(`[data-nav="${page}"]`)?.classList.add('on')
+  closeRail()
+  if (page === 'dashboard')    renderDash()
+  if (page === 'monthly')      renderMonthly()
+  if (page === 'transactions') renderTransactions()
+  if (page === 'debts')        renderDebts()
+  if (page === 'admin')        renderAdmin()
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════════════════════
+function populateDashFilters() {
+  const years = [...new Set(G.transactions.map(t => t.year))].sort((a,b) => b-a)
+  populateSelect('d-year', years, 'ทุกปี')
+  const whos = [...new Set(G.transactions.map(t => t.who))].sort()
+  populateSelect('d-who', whos, 'ทุกคน')
+}
+
+function renderDash() {
+  const year  = $('d-year').value
+  const month = $('d-month').value
+  const who   = $('d-who').value
+
+  let rows = G.transactions
+  if (year  !== 'ALL') rows = rows.filter(t => t.year  == year)
+  if (month !== 'ALL') rows = rows.filter(t => t.month === month)
+  if (who   !== 'ALL') rows = rows.filter(t => t.who   === who)
+
+  const income  = rows.filter(t => t.type === 'รายรับ').reduce((s,t)  => s + +t.amount, 0)
+  const expense = rows.filter(t => t.type === 'รายจ่าย').reduce((s,t) => s + +t.amount, 0)
+  const balance = income - expense
+  const pending = rows.filter(t => !t.status).length
+  const label   = year !== 'ALL' ? (month !== 'ALL' ? `${month} ${year}` : `ปี ${year}`) : 'ทั้งหมด'
+  $('dash-sub').textContent = label
+
+  $('dash-kpi').innerHTML = `
+    <div class="kpi kpi-inc">
+      <div class="kpi-label">รายรับ</div>
+      <div class="kpi-val c-green">฿${fmt(income)}</div>
+      <div class="kpi-sub">${rows.filter(t=>t.type==='รายรับ').length} รายการ</div>
+    </div>
+    <div class="kpi kpi-exp">
+      <div class="kpi-label">รายจ่าย</div>
+      <div class="kpi-val c-red">฿${fmt(expense)}</div>
+      <div class="kpi-sub">${rows.filter(t=>t.type==='รายจ่าย').length} รายการ</div>
+    </div>
+    <div class="kpi kpi-bal">
+      <div class="kpi-label">คงเหลือ</div>
+      <div class="kpi-val ${balance>=0?'c-green':'c-red'}">฿${fmt(balance)}</div>
+      <div class="kpi-sub">${balance>=0?'บวก':'ขาด'}</div>
+    </div>
+    <div class="kpi kpi-pend">
+      <div class="kpi-label">ค้างชำระ</div>
+      <div class="kpi-val c-amber">${pending}</div>
+      <div class="kpi-sub">รายการที่ยังไม่จ่าย</div>
+    </div>`
+
+  renderCatChart(rows)
+  renderDebtSummaryChart()
+  renderMonthlyChart(rows)
+}
+
+function renderCatChart(rows) {
+  const exp = rows.filter(t => t.type === 'รายจ่าย')
+  const bycat = {}
+  exp.forEach(t => { bycat[t.category] = (bycat[t.category] || 0) + +t.amount })
+  const sorted = Object.entries(bycat).sort((a,b) => b[1]-a[1]).slice(0,8)
+  const max = sorted[0]?.[1] || 1
+  if (!sorted.length) { $('c-cat').innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div>ไม่มีข้อมูล</div></div>'; return }
+  $('c-cat').innerHTML = '<div class="bar-list">' + sorted.map(([k,v]) => {
+    const pct = (v/max*100).toFixed(1)
+    const col = CAT_COLORS[k] || '#7a86a8'
+    return `<div class="bar-row">
+      <div class="bar-lbl" title="${k}">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="bar-val">฿${fmt(v)}</div>
+    </div>`
+  }).join('') + '</div>'
+}
+
+function renderDebtSummaryChart() {
+  const active = G.debtPlans.filter(d => d.is_active)
+  if (!active.length) {
+    $('c-debt').innerHTML = '<div class="empty" style="padding:24px"><div class="empty-ico">✅</div><div>ไม่มีแผนผ่อนที่ใช้งานอยู่</div></div>'
+    return
+  }
+  const rows = active.map(d => {
+    const p = debtProgress(d)
+    const col = p.done ? 'var(--green)' : d.who.toUpperCase() === 'SKY' ? 'var(--blue)' : 'var(--amber)'
+    return `<div class="bar-row" style="margin-bottom:10px">
+      <div class="bar-lbl" title="${d.name}">${d.name} <span style="font-size:10px;color:var(--text3)">(${d.who})</span></div>
+      <div style="flex:1">
+        <div class="bar-track" style="height:8px;margin-bottom:3px">
+          <div class="bar-fill" style="width:${p.pct}%;background:${col}"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${p.paid}/${d.total_months} งวด · เหลือ ฿${fmt(p.amtRemain)}</div>
+      </div>
+    </div>`
+  }).join('')
+  $('c-debt').innerHTML = `<div style="display:flex;flex-direction:column;gap:4px">${rows}</div>`
+}
+
+function renderMonthlyChart(rows) {
+  const all = rows || G.transactions
+  const byMonth = {}
+  all.forEach(t => {
+    const key = `${t.year}-${String(MONTHS.indexOf(t.month)+1).padStart(2,'0')}`
+    if (!byMonth[key]) byMonth[key] = {inc:0, exp:0, label: `${t.month} ${t.year}`}
+    if (t.type === 'รายรับ') byMonth[key].inc += +t.amount
+    else byMonth[key].exp += +t.amount
+  })
+  const keys = Object.keys(byMonth).sort().slice(-12)
+  if (!keys.length) { $('c-monthly').innerHTML = '<div class="empty"><div>ไม่มีข้อมูล</div></div>'; return }
+  const maxVal = Math.max(...keys.flatMap(k => [byMonth[k].inc, byMonth[k].exp]), 1)
+  const cols = keys.map(k => {
+    const d = byMonth[k]; const iH = (d.inc/maxVal*85).toFixed(1); const eH = (d.exp/maxVal*85).toFixed(1)
+    const lbl = d.label.replace(' ','<br>')
+    return `<div class="mc-col">
+      <div class="mc-bars">
+        <div class="mc-bar" style="height:${iH}px;background:var(--green);width:13px" data-tip="รายรับ ฿${fmt(d.inc)}"></div>
+        <div class="mc-bar" style="height:${eH}px;background:var(--red);width:13px"   data-tip="รายจ่าย ฿${fmt(d.exp)}"></div>
+      </div>
+      <div class="mc-lbl">${lbl}</div>
+    </div>`
+  }).join('')
+  $('c-monthly').innerHTML = `<div class="month-chart">${cols}</div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text2)">
+      <span><span style="color:var(--green)">█</span> รายรับ</span>
+      <span><span style="color:var(--red)">█</span> รายจ่าย</span>
+    </div>`
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MONTHLY SUMMARY
+// ════════════════════════════════════════════════════════════════════════
+function populateSelect(id, values, allLabel) {
+  const el = $(id); if (!el) return
+  const cur = el.value
+  el.innerHTML = `<option value="ALL">${allLabel}</option>` +
+    values.map(v => `<option ${v==cur?'selected':''}>${v}</option>`).join('')
+}
+
+function renderMonthly() {
+  const year = $('m-year').value
+  const who  = $('m-who').value
+  let rows = G.transactions
+  if (year !== 'ALL') rows = rows.filter(t => t.year == year)
+  if (who  !== 'ALL') rows = rows.filter(t => t.who === who)
+
+  const byMonth = {}
+  rows.forEach(t => {
+    const k = `${t.year}-${String(MONTHS.indexOf(t.month)+1).padStart(2,'0')}`
+    if (!byMonth[k]) byMonth[k] = {year:t.year,month:t.month,inc:0,exp:0,rows:[]}
+    if (t.type==='รายรับ') byMonth[k].inc += +t.amount
+    else byMonth[k].exp += +t.amount
+    byMonth[k].rows.push(t)
+  })
+
+  const keys = Object.keys(byMonth).sort().reverse()
+  if (!keys.length) {
+    $('monthly-content').innerHTML = '<div class="empty"><div class="empty-ico">📅</div><div class="empty-msg">ไม่มีข้อมูลในช่วงนี้</div></div>'
+    return
+  }
+
+  $('monthly-content').innerHTML = keys.map(k => {
+    const d = byMonth[k]; const bal = d.inc - d.exp
+    return `<div class="tbox" style="margin-bottom:14px">
+      <div class="tbox-head">
+        <span class="tbox-title">${d.month} ${d.year}</span>
+        <div style="display:flex;gap:12px;align-items:center;font-size:12px;font-family:var(--mono)">
+          <span class="c-green">+฿${fmt(d.inc)}</span>
+          <span class="c-red">-฿${fmt(d.exp)}</span>
+          <span class="${bal>=0?'c-green':'c-red'}" style="font-weight:700">${bal>=0?'+':'-'}฿${fmt(Math.abs(bal))}</span>
+        </div>
+      </div>
+      <div class="tscroll">
+        <table><thead><tr><th>หมวด</th><th>รายการ</th><th>ประเภท</th><th style="text-align:right">จำนวนเงิน</th><th>ใคร</th><th>สถานะ</th></tr></thead>
+        <tbody>${d.rows.map(r=>`<tr>
+          <td>${r.category}</td>
+          <td>${r.sub_category}</td>
+          <td>${typeBadge(r.type)}</td>
+          <td style="text-align:right" class="${r.type==='รายรับ'?'amt-inc':'amt-exp'}">฿${fmt(r.amount)}</td>
+          <td>${r.who}</td>
+          <td>${statusBadge(r)}</td>
+        </tr>`).join('')}</tbody></table>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// TRANSACTIONS
+// ════════════════════════════════════════════════════════════════════════
+function populateTxFilters() {
+  const years = [...new Set(G.transactions.map(t => t.year))].sort((a,b) => b-a)
+  populateSelect('tf-year', years, 'ทุกปี')
+  populateSelect('m-year',  years, 'ทุกปี')
+  const cats = [...new Set(G.transactions.map(t => t.category))].sort()
+  populateSelect('tf-cat', cats, 'ทุกหมวด')
+  const whos = [...new Set(G.transactions.map(t => t.who))].sort()
+  populateSelect('tf-who', whos, 'ทุกคน')
+  populateSelect('m-who',  whos, 'ทุกคน')
+}
+
+function applyTxFilters() {
+  const year   = $('tf-year').value
+  const month  = $('tf-month').value
+  const type   = $('tf-type').value
+  const cat    = $('tf-cat').value
+  const who    = $('tf-who').value
+  const status = $('tf-status').value
+  const q      = ($('tf-search').value || '').toLowerCase()
+
+  G.txFiltered = G.transactions.filter(t => {
+    if (year   !== 'ALL' && t.year   != year)           return false
+    if (month  !== 'ALL' && t.month  !== month)         return false
+    if (type   !== 'ALL' && t.type   !== type)          return false
+    if (cat    !== 'ALL' && t.category !== cat)         return false
+    if (who    !== 'ALL' && t.who    !== who)            return false
+    if (status === 'done'    && !t.status)              return false
+    if (status === 'pending' && t.status)               return false
+    if (q && !`${t.sub_category} ${t.category} ${t.who}`.toLowerCase().includes(q)) return false
+    return true
+  })
+  G.txPage = 1
+  renderTxTable()
+}
+
+function renderTransactions() {
+  applyTxFilters()
+}
+
+function renderTxTable() {
+  const rows = G.txFiltered
+  const total = rows.length
+  const start = (G.txPage - 1) * TX_PER_PAGE
+  const page  = rows.slice(start, start + TX_PER_PAGE)
+
+  $('tx-sub').textContent   = `${total} รายการ`
+  $('tx-count').textContent = `${total} รายการ`
+
+  if (!page.length) {
+    $('tx-tbody').innerHTML = `<tr><td colspan="9"><div class="empty" style="padding:32px"><div class="empty-ico">🔍</div><div class="empty-msg">ไม่พบรายการ</div></div></td></tr>`
+    $('tx-tfoot').innerHTML = ''
+    $('tx-pag').innerHTML   = ''
+    return
+  }
+
+  $('tx-tbody').innerHTML = page.map(t => {
+    const dp  = G.debtPlans.find(d => d.id === t.debt_plan_id)
+    const dpBadge = dp ? `<span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:2px 7px;border-radius:20px;white-space:nowrap">${dp.name}</span>` : ''
+    return `<tr>
+      <td style="font-family:var(--mono);white-space:nowrap">${t.month} ${t.year}</td>
+      <td>${t.category}</td>
+      <td>${t.sub_category}${t.notes?`<span style="font-size:10px;color:var(--text3);display:block">${t.notes}</span>`:''}</td>
+      <td>${typeBadge(t.type)}</td>
+      <td style="text-align:right" class="${t.type==='รายรับ'?'amt-inc':'amt-exp'}">฿${fmt(t.amount)}</td>
+      <td>${t.who}</td>
+      <td>${statusToggle(t)}</td>
+      <td>${dpBadge}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-xs" onclick="openTxModal(${t.id})" title="แก้ไข">✏️</button>
+        <button class="btn btn-red btn-xs" onclick="confirmDelete('tx',${t.id},'${escHtml(t.sub_category)}')" title="ลบ" style="margin-left:4px">🗑️</button>
+      </td>
+    </tr>`
+  }).join('')
+
+  const totInc = rows.filter(t=>t.type==='รายรับ').reduce((s,t)=>s+ +t.amount,0)
+  const totExp = rows.filter(t=>t.type==='รายจ่าย').reduce((s,t)=>s+ +t.amount,0)
+  $('tx-tfoot').innerHTML = `<tr>
+    <td colspan="4" style="color:var(--text3)">รวม ${total} รายการ</td>
+    <td style="text-align:right"><span class="c-green" style="font-family:var(--mono)">+฿${fmt(totInc)}</span> / <span class="c-red" style="font-family:var(--mono)">-฿${fmt(totExp)}</span></td>
+    <td colspan="4"></td>
+  </tr>`
+
+  renderPagination('tx-pag', G.txPage, Math.ceil(total/TX_PER_PAGE), p => { G.txPage = p; renderTxTable() })
+}
+
+function renderPagination(id, cur, total, cb) {
+  if (total <= 1) { $(id).innerHTML = ''; return }
+  let html = ''
+  if (cur > 1) html += `<button class="pgbtn" onclick="(${cb.toString()})(${cur-1})">‹</button>`
+  const lo = Math.max(1, cur-2), hi = Math.min(total, cur+2)
+  if (lo > 1) html += `<button class="pgbtn" onclick="(${cb.toString()})(1)">1</button>${lo>2?'<span class="pginfo">…</span>':''}`
+  for (let i=lo;i<=hi;i++) html += `<button class="pgbtn ${i===cur?'on':''}" onclick="(${cb.toString()})(${i})">${i}</button>`
+  if (hi < total) html += `${hi<total-1?'<span class="pginfo">…</span>':''}<button class="pgbtn" onclick="(${cb.toString()})(${total})">${total}</button>`
+  if (cur < total) html += `<button class="pgbtn" onclick="(${cb.toString()})(${cur+1})">›</button>`
+  $(id).innerHTML = html
+}
+
+// ── STATUS TOGGLE ──────────────────────────────────────────────────────
+function statusToggle(t) {
+  const isInc = t.type === 'รายรับ'
+  if (t.status) {
+    const label = isInc ? 'ได้รับแล้ว' : 'จ่ายแล้ว'
+    const cls   = isInc ? 'tag-recv' : 'tag-paid'
+    return `<button class="status-btn ${cls}" onclick="toggleStatus(${t.id})">${label}</button>`
+  }
+  return `<button class="status-btn tag-pend" onclick="toggleStatus(${t.id})">ค้างอยู่</button>`
+}
+
+async function toggleStatus(id) {
+  const t = G.transactions.find(x => x.id === id); if (!t) return
+  const newStatus = t.status ? '' : (t.type === 'รายรับ' ? 'ได้รับแล้ว' : 'จ่ายแล้ว')
+  const { error } = await db.from('transactions').update({status: newStatus}).eq('id', id)
+  if (error) { toast('อัปเดตสถานะล้มเหลว', 'err'); return }
+  t.status = newStatus
+  renderTxTable()
+  toast(newStatus ? '✓ อัปเดตสถานะแล้ว' : '↩ ยกเลิกสถานะแล้ว')
+}
+
+// ── TRANSACTION MODAL ──────────────────────────────────────────────────
+function openTxModal(id = null) {
+  G.editingTxId = id
+  $('tx-modal-title').textContent = id ? 'แก้ไขรายการ' : 'เพิ่มรายการ'
+  $('tx-submit-btn').textContent  = id ? 'บันทึกการแก้ไข' : 'บันทึกรายการ'
+
+  // Populate debt plan dropdown
+  $('tx-debt-plan').innerHTML = '<option value="">— ไม่มี —</option>' +
+    G.debtPlans.map(d => `<option value="${d.id}">${d.name} (${d.who})</option>`).join('')
+
+  if (id) {
+    const t = G.transactions.find(x => x.id === id); if (!t) return
+    $('tx-id').value      = t.id
+    $('tx-year').value    = t.year
+    $('tx-month').value   = t.month
+    $('tx-cat').value     = t.category
+    $('tx-sub').value     = t.sub_category
+    $('tx-amount').value  = t.amount
+    $('tx-who').value     = t.who
+    $('tx-status').value  = t.status || ''
+    $('tx-notes').value   = t.notes || ''
+    $('tx-debt-plan').value = t.debt_plan_id || ''
+    document.querySelector(`input[name="tx-type"][value="${t.type}"]`).checked = true
+  } else {
+    $('form-tx').reset()
+    $('tx-year').value = new Date().getFullYear()
+    $('tx-month').value = MONTHS[new Date().getMonth()]
+    $('tx-who').value  = G.profile?.display_name?.split(' ')[0] || 'SKY'
+    document.querySelector('input[name="tx-type"][value="รายจ่าย"]').checked = true
+  }
+  show('overlay-tx')
+}
+
+function closeTxModal() { hide('overlay-tx') }
+
+async function saveTx(e) {
+  e.preventDefault()
+  const id = $('tx-id').value
+  const data = {
+    user_id:      G.user.id,
+    year:         +$('tx-year').value,
+    month:        $('tx-month').value,
+    category:     $('tx-cat').value.trim(),
+    sub_category: $('tx-sub').value.trim(),
+    type:         document.querySelector('input[name="tx-type"]:checked').value,
+    amount:       +$('tx-amount').value,
+    who:          $('tx-who').value.trim(),
+    status:       $('tx-status').value,
+    debt_plan_id: $('tx-debt-plan').value ? +$('tx-debt-plan').value : null,
+    notes:        $('tx-notes').value.trim() || null,
+  }
+
+  showLoading(true)
+  let error
+  if (id) {
+    const res = await db.from('transactions').update(data).eq('id', id)
+    error = res.error
+    if (!error) {
+      const idx = G.transactions.findIndex(t => t.id == id)
+      if (idx >= 0) G.transactions[idx] = {...G.transactions[idx], ...data, id:+id}
+    }
+  } else {
+    const res = await db.from('transactions').insert(data).select().single()
+    error = res.error
+    if (!error && res.data) { G.transactions.unshift(res.data); G.transactions.sort(txSort) }
+  }
+  showLoading(false)
+
+  if (error) { toast('บันทึกล้มเหลว: ' + error.message, 'err'); return }
+  closeTxModal()
+  applyTxFilters()
+  populateTxFilters()
+  toast(id ? '✓ แก้ไขรายการแล้ว' : '✓ เพิ่มรายการแล้ว')
+}
+
+async function deleteTx(id) {
+  showLoading(true)
+  const { error } = await db.from('transactions').delete().eq('id', id)
+  showLoading(false)
+  if (error) { toast('ลบล้มเหลว', 'err'); return }
+  G.transactions = G.transactions.filter(t => t.id !== id)
+  applyTxFilters()
+  toast('🗑️ ลบรายการแล้ว')
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// DEBT PLANS
+// ════════════════════════════════════════════════════════════════════════
+function debtProgress(d) {
+  const si  = MONTHS.indexOf(d.start_month)
+  const now = new Date(); const ny = now.getFullYear(), nm = now.getMonth()
+  const elapsed = (ny - d.start_year) * 12 + (nm - si) + 1
+  const paid  = Math.max(0, Math.min(elapsed, d.total_months))
+  const remain = d.total_months - paid
+  return {
+    paid, remain,
+    pct:       Math.round(paid / d.total_months * 100),
+    amtPaid:   paid * +d.monthly_amount,
+    amtRemain: remain * +d.monthly_amount,
+    done:      remain <= 0
+  }
+}
+
+function calcDebtEndDate(startYear, startMonth, totalMonths) {
+  const si = MONTHS.indexOf(startMonth)
+  const em = si + totalMonths - 1
+  return { endYear: startYear + Math.floor(em / 12), endMonth: MONTHS[em % 12] }
+}
+
+function populateDebtFilters() {
+  const whos = [...new Set(G.debtPlans.map(d => d.who))].sort()
+  populateSelect('df-who', whos, 'ทุกคน')
+}
+
+function renderDebts() {
+  const who    = $('df-who').value
+  const status = $('df-status').value
+
+  let plans = G.debtPlans
+  if (who !== 'ALL') plans = plans.filter(d => d.who === who)
+  plans = plans.filter(d => {
+    const p = debtProgress(d)
+    if (status === 'active')   return d.is_active && !p.done
+    if (status === 'done')     return p.done
+    if (status === 'inactive') return !d.is_active
+    return true
+  })
+
+  // KPI
+  const activePlans = G.debtPlans.filter(d => d.is_active)
+  const totalMonthly  = activePlans.reduce((s,d) => s + +d.monthly_amount, 0)
+  const totalRemain   = activePlans.reduce((s,d) => s + debtProgress(d).amtRemain, 0)
+  const myPlans       = activePlans.filter(d => d.who.toUpperCase() !== 'SKY' && d.who.toUpperCase() !== (G.profile?.display_name||'').toUpperCase())
+  const friendMonthly = myPlans.reduce((s,d) => s + +d.monthly_amount, 0)
+
+  $('debt-kpi').innerHTML = `
+    <div class="kpi kpi-exp">
+      <div class="kpi-label">ยอดผ่อนรวม/เดือน</div>
+      <div class="kpi-val c-red">฿${fmt(totalMonthly)}</div>
+      <div class="kpi-sub">${activePlans.length} แผนที่ active</div>
+    </div>
+    <div class="kpi kpi-bal">
+      <div class="kpi-label">หนี้คงเหลือทั้งหมด</div>
+      <div class="kpi-val c-amber">฿${fmt(totalRemain)}</div>
+      <div class="kpi-sub">รวมทุกแผน</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--purple)">
+      <div class="kpi-label" style="color:var(--text3)">ยอดเพื่อน/เดือน</div>
+      <div class="kpi-val c-purple">฿${fmt(friendMonthly)}</div>
+      <div class="kpi-sub">แผนที่ไม่ใช่ของเรา</div>
+    </div>
+    <div class="kpi kpi-pend">
+      <div class="kpi-label">แผนทั้งหมด</div>
+      <div class="kpi-val c-blue">${G.debtPlans.length}</div>
+      <div class="kpi-sub">active: ${activePlans.length}</div>
+    </div>`
+
+  if (!plans.length) {
+    $('debt-grid').innerHTML = '<div class="empty"><div class="empty-ico">🗂️</div><div class="empty-msg">ยังไม่มีแผนผ่อน<br>คลิก "เพิ่มแผนผ่อน" เพื่อเริ่มต้น</div></div>'
+    return
+  }
+
+  $('debt-grid').innerHTML = plans.map(d => {
+    const p   = debtProgress(d)
+    const cls = !d.is_active ? 'inactive' : p.done ? 'done' : d.who.toUpperCase() === 'SKY' ? 'sky' : 'other'
+    const col = p.done ? 'var(--green)' : cls === 'sky' ? 'var(--blue)' : 'var(--amber)'
+    const statusLabel = !d.is_active ? '<span class="tag tag-member">ปิดแล้ว</span>'
+                      : p.done ? '<span class="tag tag-paid">✓ ชำระครบ</span>'
+                      : p.paid === 0 ? '<span class="tag tag-pend">ยังไม่เริ่ม</span>'
+                      : '<span class="tag tag-recv">กำลังผ่อน</span>'
+    const whoBadge = `<span class="tag ${d.who.toUpperCase()==='SKY'?'tag-recv':'tag-pend'}">${d.who}</span>`
+    return `<div class="debt-card ${cls}">
+      <div class="debt-name">${escHtml(d.name)} ${whoBadge}</div>
+      <div class="debt-meta">${d.category} · ${d.start_month} ${d.start_year} → ${d.end_month} ${d.end_year} ${statusLabel}</div>
+      <div class="debt-progress-wrap">
+        <div class="debt-progress-label">
+          <span>${p.paid} / ${d.total_months} งวด</span>
+          <span style="color:var(--text3)">${p.pct}%</span>
+        </div>
+        <div class="debt-progress-track">
+          <div class="debt-progress-fill" style="width:${p.pct}%;background:${col}"></div>
+        </div>
+      </div>
+      <div class="debt-stats">
+        <div class="debt-stat">
+          <div class="debt-stat-lbl">ต่อเดือน</div>
+          <div class="debt-stat-val" style="color:var(--red)">฿${fmt(d.monthly_amount)}</div>
+        </div>
+        <div class="debt-stat">
+          <div class="debt-stat-lbl">คงเหลือ</div>
+          <div class="debt-stat-val" style="color:var(--amber)">฿${fmt(p.amtRemain)}</div>
+        </div>
+        <div class="debt-stat">
+          <div class="debt-stat-lbl">จ่ายไปแล้ว</div>
+          <div class="debt-stat-val" style="color:var(--green)">฿${fmt(p.amtPaid)}</div>
+        </div>
+        <div class="debt-stat">
+          <div class="debt-stat-lbl">ยอดรวม</div>
+          <div class="debt-stat-val">฿${fmt(d.total_amount)}</div>
+        </div>
+      </div>
+      ${d.notes ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px">${escHtml(d.notes)}</div>` : ''}
+      <div class="debt-actions">
+        <button class="btn btn-ghost btn-xs" onclick="openDebtModal(${d.id})">✏️ แก้ไข</button>
+        <button class="btn btn-red btn-xs" onclick="confirmDelete('debt',${d.id},'${escHtml(d.name)}')">🗑️ ลบ</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ── DEBT FORM CALCULATIONS ─────────────────────────────────────────────
+function calcDebtForm() {
+  const total  = +$('debt-total').value  || 0
+  const months = +$('debt-months').value || 0
+  if (total && months) {
+    const monthly = total / months
+    $('debt-monthly').value = monthly.toFixed(2)
+    $('debt-monthly-hint').textContent = `= ฿${fmt(monthly)} / เดือน`
+  }
+  calcDebtEndDateForm()
+}
+
+function calcDebtFormFromMonthly() {
+  const monthly = +$('debt-monthly').value || 0
+  const months  = +$('debt-months').value  || 0
+  if (monthly && months) {
+    $('debt-total').value = (monthly * months).toFixed(2)
+  }
+  calcDebtEndDateForm()
+}
+
+function calcDebtEndDateForm() {
+  const sm = $('debt-start-month').value
+  const sy = +$('debt-start-year').value
+  const m  = +$('debt-months').value
+  if (sm && sy && m) {
+    const { endYear, endMonth } = calcDebtEndDate(sy, sm, m)
+    $('debt-end-year').value  = endYear
+    $('debt-end-month').value = endMonth
+  }
+}
+
+// ── DEBT MODAL ─────────────────────────────────────────────────────────
+function openDebtModal(id = null) {
+  G.editingDebtId = id
+  $('debt-modal-title').textContent = id ? 'แก้ไขแผนผ่อน' : 'เพิ่มแผนผ่อน'
+  $('debt-submit-btn').textContent  = id ? 'บันทึกการแก้ไข' : 'บันทึกแผนผ่อน'
+
+  if (id) {
+    const d = G.debtPlans.find(x => x.id === id); if (!d) return
+    $('debt-id').value          = d.id
+    $('debt-name').value        = d.name
+    $('debt-cat').value         = d.category
+    $('debt-who').value         = d.who
+    $('debt-total').value       = d.total_amount
+    $('debt-months').value      = d.total_months
+    $('debt-monthly').value     = d.monthly_amount
+    $('debt-start-month').value = d.start_month
+    $('debt-start-year').value  = d.start_year
+    $('debt-end-month').value   = d.end_month
+    $('debt-end-year').value    = d.end_year
+    $('debt-notes').value       = d.notes || ''
+    $('debt-active').checked    = d.is_active
+  } else {
+    $('form-debt').reset()
+    $('debt-id').value         = ''
+    $('debt-start-year').value = new Date().getFullYear()
+    $('debt-start-month').value = MONTHS[new Date().getMonth()]
+    $('debt-who').value        = G.profile?.display_name?.split(' ')[0] || 'SKY'
+    $('debt-active').checked   = true
+    $('debt-monthly-hint').textContent = 'กรอก ยอดรวม ÷ จำนวนงวด'
+  }
+  show('overlay-debt')
+}
+
+function closeDebtModal() { hide('overlay-debt') }
+
+async function saveDebt(e) {
+  e.preventDefault()
+  const id = $('debt-id').value
+  const data = {
+    user_id:        G.user.id,
+    name:           $('debt-name').value.trim(),
+    category:       $('debt-cat').value,
+    who:            $('debt-who').value.trim(),
+    total_amount:   +$('debt-total').value || (+$('debt-monthly').value * +$('debt-months').value),
+    monthly_amount: +$('debt-monthly').value,
+    total_months:   +$('debt-months').value,
+    start_year:     +$('debt-start-year').value,
+    start_month:    $('debt-start-month').value,
+    end_year:       +$('debt-end-year').value,
+    end_month:      $('debt-end-month').value,
+    notes:          $('debt-notes').value.trim() || null,
+    is_active:      $('debt-active').checked,
+  }
+  if (!data.end_month) {
+    const { endYear, endMonth } = calcDebtEndDate(data.start_year, data.start_month, data.total_months)
+    data.end_year = endYear; data.end_month = endMonth
+  }
+
+  showLoading(true)
+  let error
+  if (id) {
+    const res = await db.from('debt_plans').update(data).eq('id', id)
+    error = res.error
+    if (!error) {
+      const idx = G.debtPlans.findIndex(d => d.id == id)
+      if (idx >= 0) G.debtPlans[idx] = {...G.debtPlans[idx], ...data, id:+id}
+    }
+  } else {
+    const res = await db.from('debt_plans').insert(data).select().single()
+    error = res.error
+    if (!error && res.data) G.debtPlans.unshift(res.data)
+  }
+  showLoading(false)
+
+  if (error) { toast('บันทึกล้มเหลว: ' + error.message, 'err'); return }
+  closeDebtModal()
+  populateDebtFilters()
+  renderDebts()
+  renderDash()
+  toast(id ? '✓ แก้ไขแผนผ่อนแล้ว' : '✓ เพิ่มแผนผ่อนแล้ว')
+}
+
+async function deleteDebt(id) {
+  showLoading(true)
+  const { error } = await db.from('debt_plans').delete().eq('id', id)
+  showLoading(false)
+  if (error) { toast('ลบล้มเหลว: ' + error.message, 'err'); return }
+  G.debtPlans = G.debtPlans.filter(d => d.id !== id)
+  renderDebts()
+  toast('🗑️ ลบแผนผ่อนแล้ว')
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ADMIN
+// ════════════════════════════════════════════════════════════════════════
+async function renderAdmin() {
+  if (G.profile?.role !== 'admin') return
+  showLoading(true)
+  const { data, error } = await db.rpc('admin_get_profiles')
+  showLoading(false)
+  if (error) { toast('โหลดข้อมูลผู้ใช้ล้มเหลว: ' + error.message, 'err'); return }
+
+  const users = data || []
+  $('admin-count').textContent = `${users.length} คน (รอ ${users.filter(u=>!u.is_approved).length} คน)`
+
+  if (!users.length) {
+    $('admin-tbody').innerHTML = '<tr><td colspan="6"><div class="empty">ไม่มีสมาชิก</div></td></tr>'
+    return
+  }
+
+  $('admin-tbody').innerHTML = users.map(u => {
+    const isMe = u.id === G.user.id
+    const approvedBadge  = u.is_approved ? '<span class="tag tag-approved">อนุมัติแล้ว</span>' : '<span class="tag tag-waiting">รอการอนุมัติ</span>'
+    const roleBadge      = u.role === 'admin' ? '<span class="tag tag-admin">Admin</span>' : '<span class="tag tag-member">Member</span>'
+    const createdDate    = new Date(u.created_at).toLocaleDateString('th-TH', {year:'numeric',month:'short',day:'numeric'})
+    const actions = isMe ? '<span style="font-size:11px;color:var(--text3)">— (คุณ) —</span>' : `
+      ${!u.is_approved
+        ? `<button class="btn btn-green btn-xs" onclick="adminApprove('${u.id}',true)">✓ อนุมัติ</button>`
+        : `<button class="btn btn-ghost btn-xs" onclick="adminApprove('${u.id}',false)">✕ ยกเลิก</button>`
+      }
+      ${u.role !== 'admin'
+        ? `<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="adminSetRole('${u.id}','admin')">▲ Admin</button>`
+        : `<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="adminSetRole('${u.id}','member')">▼ Member</button>`
+      }`
+    return `<tr class="${!u.is_approved?'user-row-pending':''}">
+      <td style="font-weight:600">${escHtml(u.display_name)}</td>
+      <td style="font-family:var(--mono);font-size:12px">${escHtml(u.email)}</td>
+      <td>${roleBadge}</td>
+      <td>${approvedBadge}</td>
+      <td style="font-size:12px;color:var(--text2)">${createdDate}</td>
+      <td style="white-space:nowrap">${actions}</td>
+    </tr>`
+  }).join('')
+}
+
+async function adminApprove(userId, approved) {
+  showLoading(true)
+  const { error } = await db.rpc('admin_set_approval', { p_user_id: userId, p_approved: approved })
+  showLoading(false)
+  if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
+  toast(approved ? '✓ อนุมัติผู้ใช้แล้ว' : '✓ ยกเลิกสิทธิ์แล้ว')
+  renderAdmin()
+}
+
+async function adminSetRole(userId, role) {
+  showLoading(true)
+  const { error } = await db.rpc('admin_set_approval', { p_user_id: userId, p_approved: true, p_role: role })
+  showLoading(false)
+  if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
+  toast(`✓ เปลี่ยน role เป็น ${role} แล้ว`)
+  renderAdmin()
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CONFIRM DELETE
+// ════════════════════════════════════════════════════════════════════════
+let _confirmCb = null
+function confirmDelete(type, id, name) {
+  $('confirm-msg').textContent    = `ต้องการลบ "${name}"?`
+  $('confirm-detail').textContent = type === 'debt'
+    ? 'แผนผ่อนนี้จะถูกลบออก แต่รายการที่ลิงก์ไว้จะยังคงอยู่'
+    : 'รายการนี้จะถูกลบถาวร'
+  _confirmCb = () => { type === 'tx' ? deleteTx(id) : deleteDebt(id); closeConfirm() }
+  $('confirm-ok-btn').onclick = _confirmCb
+  show('overlay-confirm')
+}
+function closeConfirm() { hide('overlay-confirm'); _confirmCb = null }
+
+// ════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id)
+function show(id) { const el=$(id); if(el){el.classList.remove('hidden')} }
+function hide(id) { const el=$(id); if(el){el.classList.add('hidden')} }
+function showLoading(on) { on ? show('loading') : hide('loading') }
+
+function switchTab(tab) {
+  $('form-login').classList.toggle('on', tab==='login')
+  $('form-register').classList.toggle('on', tab==='register')
+  $('tab-login').classList.toggle('on', tab==='login')
+  $('tab-register').classList.toggle('on', tab==='register')
+}
+
+function showMsg(form, msg, type='err') {
+  const el = $(form+'-msg')
+  el.textContent = msg
+  el.className = 'auth-msg ' + (type==='ok'?'ok':'err')
+}
+
+function fmt(n) {
+  return new Intl.NumberFormat('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2}).format(+n || 0)
+}
+
+function typeBadge(type) {
+  return type === 'รายรับ'
+    ? '<span class="tag tag-inc">↑ รายรับ</span>'
+    : '<span class="tag tag-exp">↓ รายจ่าย</span>'
+}
+
+function statusBadge(t) {
+  if (t.status === 'จ่ายแล้ว')   return '<span class="tag tag-paid">จ่ายแล้ว</span>'
+  if (t.status === 'ได้รับแล้ว') return '<span class="tag tag-recv">ได้รับแล้ว</span>'
+  if (t.status)                   return `<span class="tag tag-paid">${t.status}</span>`
+  return '<span class="tag tag-pend">ค้างอยู่</span>'
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+let _toastTimer
+function toast(msg, type='ok') {
+  const el = $('toast'), ico = $('toast-ico'), txt = $('toast-msg')
+  ico.textContent = type === 'err' ? '✕' : '✓'
+  txt.textContent = msg
+  el.style.borderColor = type==='err' ? 'rgba(240,82,74,.4)' : 'var(--line)'
+  ico.style.color = type==='err' ? 'var(--red)' : 'var(--green)'
+  el.classList.add('on')
+  clearTimeout(_toastTimer)
+  _toastTimer = setTimeout(() => el.classList.remove('on'), 3200)
+}
+
+// ── MOBILE RAIL ─────────────────────────────────────────────────────────
+function toggleRail()  { $('rail').classList.toggle('open') }
+function closeRail()   { $('rail').classList.remove('open') }
+
+// ── KEYBOARD SHORTCUTS ──────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    hide('overlay-tx'); hide('overlay-debt'); closeConfirm()
+  }
+})
+
+// ── CLICK OUTSIDE MODALS ────────────────────────────────────────────────
+['overlay-tx','overlay-debt','overlay-confirm'].forEach(id => {
+  $(id)?.addEventListener('click', e => { if (e.target.id === id) hide(id) })
+})
+
+// ── LOGIN ON ENTER ──────────────────────────────────────────────────────
+$('login-pass')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin() })
+$('login-email')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin() })
+
+// ════════════════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════════════════
+init()
+</script>
+</body>
+</html>
