@@ -925,8 +925,8 @@ async function loadAll() {
   showLoading(true)
   try {
     const [txRes, dpRes] = await Promise.all([
-      db.from('transactions').select('*').eq('user_id', G.user.id).order('year', {ascending:false}),
-      db.from('debt_plans').select('*').eq('user_id', G.user.id).order('created_at', {ascending:false})
+      db.from('transactions').select('*').order('year', {ascending:false}),
+      db.from('debt_plans').select('*').order('created_at', {ascending:false})
     ])
     if (txRes.error) toast('โหลด transactions ล้มเหลว', 'err')
     else G.transactions = (txRes.data || []).sort(txSort)
