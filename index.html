@@ -303,6 +303,14 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 .ds-who-SKY{background:var(--blue-dim);color:var(--blue)}
 .ds-who-NATT,.ds-who-NAT{background:rgba(155,108,240,.15);color:var(--purple)}
 .ds-inactive{opacity:.38}
+.ds-paid{color:var(--green) !important;background:rgba(52,209,122,.06) !important}
+.ds-paid.ds-cur{color:var(--green) !important;background:rgba(52,209,122,.12) !important}
+.ds-cell-click{cursor:pointer;transition:opacity .15s}
+.ds-cell-click:hover{opacity:.7}
+.ds-row-paid td{background:rgba(52,209,122,.04)}
+.ds-row-pend td{background:rgba(240,180,50,.03)}
+.ds-foot-paid td{border-top:1px solid var(--line);font-size:11px;font-family:var(--mono)}
+.ds-foot-pend td{font-size:11px;font-family:var(--mono);border-bottom:2px solid var(--line)}
 
 /* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
 @media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
@@ -2149,10 +2157,18 @@ function renderDebtSummary() {
       name: t.sub_category,
       category: t.category,
       who: whoFilter === 'ALL' ? null : t.who,
-      months: {}
+      months: {}, paid: {}, txIds: {}
     }
     const colKey = multiYear ? `${t.year}-${t.month}` : t.month
     pivot[rowKey].months[colKey] = (pivot[rowKey].months[colKey] || 0) + Number(t.amount)
+    // track tx ids per cell
+    if (!pivot[rowKey].txIds[colKey]) pivot[rowKey].txIds[colKey] = []
+    pivot[rowKey].txIds[colKey].push(t.id)
+    // cell is "paid" only if ALL txs in it are paid
+    const thisPaid = t.status !== ''
+    pivot[rowKey].paid[colKey] = pivot[rowKey].paid[colKey] === undefined
+      ? thisPaid
+      : pivot[rowKey].paid[colKey] && thisPaid
   })
 
   // sort rows: by category then sub_category
@@ -2160,12 +2176,20 @@ function renderDebtSummary() {
     a.category.localeCompare(b.category, 'th') || a.name.localeCompare(b.name, 'th')
   )
 
-  // totals per column
-  const totals = {}
-  cols.forEach(c => { totals[c.key] = 0 })
+  // totals per column (total / paid / pending)
+  const totals = {}, paidTotals = {}, pendTotals = {}
+  cols.forEach(c => { totals[c.key] = 0; paidTotals[c.key] = 0; pendTotals[c.key] = 0 })
   rows.forEach(r => {
-    cols.forEach(c => { totals[c.key] += r.months[c.key] || 0 })
+    cols.forEach(c => {
+      const v = r.months[c.key] || 0
+      totals[c.key] += v
+      if (v) {
+        if (r.paid[c.key]) paidTotals[c.key] += v
+        else               pendTotals[c.key] += v
+      }
+    })
   })
+  const isAdmin = G.profile?.role === 'admin'
 
   // group cols by year for header (used in multi-year mode)
   const yearGroups = []
@@ -2218,11 +2242,19 @@ function renderDebtSummary() {
 
   html += '</thead><tbody>'
 
+  // hint for admin
+  if (isAdmin) {
+    html += `<tr style="background:var(--surface3)"><td colspan="3" class="ds-sticky" style="left:0;font-size:10px;color:var(--text3);padding:5px 10px">
+      💡 คลิกที่ยอดเงินเพื่อสลับสถานะ จ่ายแล้ว / ค้างอยู่</td>
+      ${cols.map(() => '<td></td>').join('')}</tr>`
+  }
+
   // data rows
   rows.forEach(r => {
     const whoClass = r.who ? 'ds-who-' + r.who.toUpperCase().replace(/\s/g,'') : ''
     const activeCount = cols.filter(c => r.months[c.key] > 0).length
-    html += '<tr>'
+    const allRowPaid = activeCount > 0 && cols.filter(c => r.months[c.key] > 0).every(c => r.paid[c.key])
+    html += `<tr${allRowPaid ? ' class="ds-row-paid"' : ''}>`
     html += `<td class="ds-sticky ds-name" style="left:0">${escHtml(r.name)}`
     if (r.who) html += `<span class="ds-who-badge ${whoClass}">${escHtml(r.who)}</span>`
     html += '</td>'
@@ -2231,13 +2263,39 @@ function renderDebtSummary() {
     cols.forEach(c => {
       const val = r.months[c.key] || 0
       if (val) {
-        html += `<td class="ds-amt ds-active${c.isCur ? ' ds-cur' : ''}">${fmt(val)}</td>`
+        const isPaid   = r.paid[c.key]
+        const ids      = (r.txIds[c.key] || []).join(',')
+        const paidCls  = isPaid ? ' ds-paid' : ''
+        const clickAttr = isAdmin ? ` onclick="toggleCellStatus('${ids}',${isPaid})" class="ds-amt ds-active ds-cell-click${c.isCur?' ds-cur':''}${paidCls}"` : ` class="ds-amt ds-active${c.isCur?' ds-cur':''}${paidCls}"`
+        html += `<td${clickAttr}>${isPaid ? '✓ ' : ''}${fmt(val)}</td>`
       } else {
         html += `<td class="ds-amt${c.isCur ? ' ds-cur' : ''}"></td>`
       }
     })
     html += '</tr>'
   })
+
+  // footer: จ่ายแล้ว
+  html += '<tr class="ds-foot-paid">'
+  html += '<td class="ds-sticky ds-name" style="left:0;color:var(--green)">✓ จ่ายแล้ว</td>'
+  html += '<td class="ds-sticky" style="left:160px"></td>'
+  html += '<td class="ds-sticky" style="left:250px"></td>'
+  cols.forEach(c => {
+    const v = paidTotals[c.key]
+    html += `<td class="ds-amt${c.isCur?' ds-cur':''}" style="color:var(--green)">${v > 0 ? fmt(v) : ''}</td>`
+  })
+  html += '</tr>'
+
+  // footer: ค้างอยู่
+  html += '<tr class="ds-foot-pend">'
+  html += '<td class="ds-sticky ds-name" style="left:0;color:var(--amber)">⏳ ค้างอยู่</td>'
+  html += '<td class="ds-sticky" style="left:160px"></td>'
+  html += '<td class="ds-sticky" style="left:250px"></td>'
+  cols.forEach(c => {
+    const v = pendTotals[c.key]
+    html += `<td class="ds-amt${c.isCur?' ds-cur':''}" style="color:var(--amber)">${v > 0 ? fmt(v) : ''}</td>`
+  })
+  html += '</tr>'
 
   // total row
   html += '<tr class="ds-total-row">'
@@ -2252,6 +2310,20 @@ function renderDebtSummary() {
 
   html += '</tbody></table></div>'
   $('ds-content').innerHTML = html
+}
+
+async function toggleCellStatus(txIdsStr, allPaid) {
+  if (G.profile?.role !== 'admin') return
+  const ids = txIdsStr.split(',').map(Number).filter(Boolean)
+  if (!ids.length) return
+  const txs = G.transactions.filter(t => ids.includes(t.id))
+  if (!txs.length) return
+  const newStatus = allPaid ? '' : (txs[0].type === 'รายรับ' ? 'ได้รับแล้ว' : 'จ่ายแล้ว')
+  const { error } = await db.from('transactions').update({ status: newStatus }).in('id', ids)
+  if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
+  txs.forEach(t => { t.status = newStatus })
+  renderDebtSummary()
+  toast(newStatus ? '✓ บันทึกว่าจ่ายแล้ว' : '↩ ยกเลิกสถานะ')
 }
 
 // ════════════════════════════════════════════════════════════════════════
