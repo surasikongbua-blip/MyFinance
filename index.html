@@ -272,6 +272,32 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 /* ── ADMIN PAGE ─────────────────────────────────────────────────────────── */
 .user-row-pending{background:rgba(240,180,50,.04)}
 
+/* ── DEBT SUMMARY TABLE ─────────────────────────────────────────────────── */
+.ds-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);margin-bottom:20px}
+.ds-table{border-collapse:collapse;min-width:100%;font-size:12px}
+.ds-table th,.ds-table td{padding:7px 10px;white-space:nowrap;border-bottom:1px solid var(--line2)}
+.ds-table thead th{background:var(--surface2);font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);position:sticky;top:0;z-index:2}
+.ds-table thead th.ds-cur{background:rgba(61,142,240,.18);color:var(--blue)}
+.ds-table .ds-sticky{position:sticky;left:0;z-index:1;background:var(--surface)}
+.ds-table thead .ds-sticky{background:var(--surface2);z-index:3}
+.ds-table tbody tr:hover td{background:rgba(61,142,240,.04)}
+.ds-table tbody tr:hover .ds-sticky{background:rgba(61,142,240,.06)}
+.ds-table .ds-name{min-width:150px;max-width:200px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--text)}
+.ds-table .ds-ch{min-width:80px;color:var(--text2)}
+.ds-table .ds-mo{min-width:44px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center}
+.ds-table .ds-amt{text-align:right;font-family:var(--mono);color:var(--text2);min-width:72px}
+.ds-table .ds-amt.ds-cur{color:var(--blue);font-weight:700}
+.ds-table .ds-amt.ds-active{color:var(--text)}
+.ds-table .ds-amt.ds-cur.ds-active{color:var(--blue);font-weight:800}
+.ds-table .ds-total-row td{background:var(--surface2);font-weight:700;border-top:2px solid var(--line)}
+.ds-table .ds-total-row .ds-amt{color:var(--red);font-size:12px}
+.ds-table .ds-total-row .ds-amt.ds-cur{color:var(--blue)}
+.ds-yr-head{text-align:center;border-bottom:1px solid var(--line2);background:var(--surface3) !important;color:var(--text2) !important;font-size:10px;letter-spacing:.05em}
+.ds-who-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;vertical-align:middle;margin-left:5px}
+.ds-who-SKY{background:var(--blue-dim);color:var(--blue)}
+.ds-who-NATT,.ds-who-NAT{background:rgba(155,108,240,.15);color:var(--purple)}
+.ds-inactive{opacity:.38}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
 @media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
 @media(max-width:700px){
@@ -395,6 +421,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 
     <div class="rail-section">หนี้ / ผ่อน</div>
     <div class="nav-link" data-nav="debts" onclick="go('debts')"><span class="nav-ico">🗂️</span>แผนผ่อนชำระ</div>
+    <div class="nav-link" data-nav="debt-summary" onclick="go('debt-summary')"><span class="nav-ico">📆</span>ตารางค่าใช้จ่าย</div>
 
     <div class="nav-link" id="nav-admin" data-nav="admin" onclick="go('admin')" style="display:none">
       <span class="nav-ico">⚙️</span>จัดการผู้ใช้
@@ -518,6 +545,22 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
         </select>
       </div>
       <div class="debt-grid" id="debt-grid"></div>
+    </div>
+
+    <!-- ═══ DEBT SUMMARY TABLE ══════════════════════════════════════════ -->
+    <div class="page" id="page-debt-summary">
+      <div class="page-header">
+        <div><div class="page-title">📆 ตารางค่าใช้จ่ายรายเดือน</div><div class="page-sub">สรุปค่าผ่อนชำระทุกรายการแยกตามเดือน</div></div>
+        <div class="toolbar">
+          <select class="fsel" id="ds-who" onchange="renderDebtSummary()"><option value="ALL">ทุกคน</option></select>
+          <select class="fsel" id="ds-status" onchange="renderDebtSummary()">
+            <option value="ALL">ทุกสถานะ</option>
+            <option value="active">กำลังผ่อน</option>
+            <option value="done">ชำระครบ</option>
+          </select>
+        </div>
+      </div>
+      <div id="ds-content"></div>
     </div>
 
     <!-- ═══ ADMIN ════════════════════════════════════════════════════════ -->
@@ -915,6 +958,7 @@ function go(page) {
   if (page === 'monthly')      renderMonthly()
   if (page === 'transactions') renderTransactions()
   if (page === 'debts')        renderDebts()
+  if (page === 'debt-summary') renderDebtSummary()
   if (page === 'admin')        renderAdmin()
 }
 
@@ -1804,6 +1848,127 @@ const loginPass  = $('login-pass')
 const loginEmail = $('login-email')
 if (loginPass)  loginPass.addEventListener('keydown',  e => { if (e.key === 'Enter') doLogin() })
 if (loginEmail) loginEmail.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
+
+// ════════════════════════════════════════════════════════════════════════
+// DEBT SUMMARY TABLE
+// ════════════════════════════════════════════════════════════════════════
+function renderDebtSummary() {
+  const whoFilter    = $('ds-who').value
+  const statusFilter = $('ds-status').value
+
+  // populate WHO filter
+  const whos = [...new Set(G.debtPlans.map(d => d.who))].sort()
+  populateSelect('ds-who', whos, 'ทุกคน')
+
+  let plans = G.debtPlans
+  if (whoFilter !== 'ALL') plans = plans.filter(d => d.who === whoFilter)
+  if (statusFilter === 'active') plans = plans.filter(d => d.is_active && !dsIsDone(d))
+  else if (statusFilter === 'done') plans = plans.filter(d => dsIsDone(d))
+
+  if (!plans.length) {
+    $('ds-content').innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div class="empty-msg">ไม่พบแผนผ่อน</div></div>'
+    return
+  }
+
+  // build full month range across all plans
+  const toIdx = (y, m) => y * 12 + MONTHS.indexOf(m)
+  const fromIdx = idx => ({ year: Math.floor(idx / 12), month: MONTHS[idx % 12] })
+
+  const minIdx = Math.min(...plans.map(d => toIdx(d.start_year, d.start_month)))
+  const maxIdx = Math.max(...plans.map(d => toIdx(d.end_year, d.end_month)))
+
+  const now = new Date()
+  const curIdx = toIdx(now.getFullYear(), MONTHS[now.getMonth()])
+
+  // build columns list [{year, month, idx}]
+  const cols = []
+  for (let i = minIdx; i <= maxIdx; i++) {
+    const { year, month } = fromIdx(i)
+    cols.push({ year, month, idx: i })
+  }
+
+  // group columns by year for header
+  const yearGroups = []
+  let lastY = null
+  cols.forEach(c => {
+    if (c.year !== lastY) { yearGroups.push({ year: c.year, count: 1 }); lastY = c.year }
+    else yearGroups[yearGroups.length - 1].count++
+  })
+
+  // render
+  let html = '<div class="ds-wrap"><table class="ds-table">'
+
+  // thead row 1: year spans
+  html += '<thead><tr>'
+  html += '<th class="ds-sticky" style="left:0;min-width:160px" rowspan="2">รายการ</th>'
+  html += '<th class="ds-sticky" style="left:160px;min-width:80px" rowspan="2">ช่องทาง</th>'
+  html += '<th class="ds-sticky" style="left:240px;min-width:44px;text-align:center" rowspan="2">งวด</th>'
+  yearGroups.forEach(yg => {
+    html += `<th class="ds-yr-head" colspan="${yg.count}">${yg.year}</th>`
+  })
+  html += '</tr>'
+
+  // thead row 2: month names
+  html += '<tr>'
+  cols.forEach(c => {
+    const isCur = c.idx === curIdx
+    html += `<th style="text-align:right" class="${isCur ? 'ds-cur' : ''}">${c.month}</th>`
+  })
+  html += '</tr></thead><tbody>'
+
+  // rows
+  const totals = {}
+  cols.forEach(c => { totals[c.idx] = 0 })
+
+  plans.forEach(d => {
+    const startIdx = toIdx(d.start_year, d.start_month)
+    const endIdx   = toIdx(d.end_year,   d.end_month)
+    const done     = dsIsDone(d)
+    const whoClass = 'ds-who-' + (d.who || 'SKY').toUpperCase().replace(/\s/g,'')
+    const rowClass = (!d.is_active || done) ? ' ds-inactive' : ''
+
+    html += `<tr class="${rowClass}">`
+    html += `<td class="ds-sticky ds-name" style="left:0">${escHtml(d.name)}<span class="ds-who-badge ${whoClass}">${escHtml(d.who)}</span></td>`
+    html += `<td class="ds-sticky ds-ch" style="left:160px">${escHtml(d.category)}</td>`
+    html += `<td class="ds-sticky ds-mo" style="left:240px">${d.total_months}</td>`
+
+    cols.forEach(c => {
+      const isCur = c.idx === curIdx
+      const active = c.idx >= startIdx && c.idx <= endIdx
+      if (active) {
+        const cls = 'ds-amt ds-active' + (isCur ? ' ds-cur' : '')
+        html += `<td class="${cls}">${fmt(d.monthly_amount)}</td>`
+        if (d.is_active) totals[c.idx] += Number(d.monthly_amount)
+      } else {
+        html += `<td class="ds-amt${isCur ? ' ds-cur' : ''}"></td>`
+      }
+    })
+    html += '</tr>'
+  })
+
+  // total row
+  html += '<tr class="ds-total-row">'
+  html += '<td class="ds-sticky ds-name" style="left:0;font-weight:800">รวมทั้งหมด</td>'
+  html += '<td class="ds-sticky" style="left:160px"></td>'
+  html += '<td class="ds-sticky" style="left:240px"></td>'
+  cols.forEach(c => {
+    const isCur = c.idx === curIdx
+    const val = totals[c.idx]
+    const cls = 'ds-amt' + (isCur ? ' ds-cur' : '')
+    html += `<td class="${cls}">${val > 0 ? fmt(val) : ''}</td>`
+  })
+  html += '</tr>'
+
+  html += '</tbody></table></div>'
+  $('ds-content').innerHTML = html
+}
+
+function dsIsDone(d) {
+  const toIdx = (y, m) => y * 12 + MONTHS.indexOf(m)
+  const now = new Date()
+  const curIdx = toIdx(now.getFullYear(), MONTHS[now.getMonth()])
+  return toIdx(d.end_year, d.end_month) < curIdx
+}
 
 // ════════════════════════════════════════════════════════════════════════
 // CSV IMPORT
