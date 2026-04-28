@@ -206,6 +206,12 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 .status-btn{cursor:pointer;border:none;font-family:var(--sans);background:transparent;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;transition:filter .15s}
 .status-btn:hover{filter:brightness(1.2)}
 
+/* ── CUSTOM MONTHLY GRID ─────────────────────────────────────────────────── */
+.dmr{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.dmr-lbl{min-width:110px;font-size:12px;color:var(--text2);flex-shrink:0;font-family:var(--mono)}
+.dmr-inp{max-width:130px;padding:5px 8px !important;font-size:12px !important}
+.debt-custom-total-bar{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:8px 10px;background:var(--surface3);border-radius:var(--r2)}
+
 /* ── DEBT PLAN CARDS ─────────────────────────────────────────────────────── */
 .debt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:20px}
 .debt-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
@@ -706,6 +712,32 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
           <input class="fi" id="debt-monthly" type="number" min="0" step="0.01" placeholder="คำนวณอัตโนมัติ" oninput="calcDebtFormFromMonthly()">
           <span class="fhint blue" id="debt-monthly-hint">กรอก ยอดรวม ÷ จำนวนงวด</span>
         </div>
+
+        <!-- ── MODE SWITCHER ── -->
+        <div class="fg full">
+          <label class="flabel">รูปแบบการผ่อน</label>
+          <div class="fradio-group">
+            <label class="fradio">
+              <input type="radio" name="debt-mode" value="avg" checked onchange="toggleDebtMode('avg')">
+              เฉลี่ยเท่ากันทุกเดือน
+            </label>
+            <label class="fradio">
+              <input type="radio" name="debt-mode" value="custom" onchange="toggleDebtMode('custom')">
+              กำหนดเองแต่ละเดือน
+            </label>
+          </div>
+        </div>
+
+        <!-- ── CUSTOM MONTHLY GRID (hidden by default) ── -->
+        <div class="fg full hidden" id="debt-custom-section">
+          <label class="flabel">ยอดผ่อนแต่ละเดือน</label>
+          <div id="debt-monthly-rows" style="max-height:260px;overflow-y:auto;padding-right:4px"></div>
+          <div class="debt-custom-total-bar">
+            <span style="font-size:11px;color:var(--text2)">ยอดรวมทั้งหมด</span>
+            <span id="debt-custom-total" style="font-family:var(--mono);font-weight:700;color:var(--text)">฿0.00</span>
+          </div>
+        </div>
+
         <div class="fg">
           <label class="flabel">เริ่มเดือน</label>
           <select class="fs" id="debt-start-month" onchange="calcDebtForm()" required>
@@ -1406,14 +1438,22 @@ function debtProgress(d) {
   const si  = MONTHS.indexOf(d.start_month)
   const now = new Date(); const ny = now.getFullYear(), nm = now.getMonth()
   const elapsed = (ny - d.start_year) * 12 + (nm - si) + 1
-  const paid  = Math.max(0, Math.min(elapsed, d.total_months))
+  const paid   = Math.max(0, Math.min(elapsed, d.total_months))
   const remain = d.total_months - paid
+  const ma = d.monthly_amounts
+  let amtPaid = 0, amtRemain = 0
+  if (ma && ma.length > 0) {
+    for (let i = 0; i < paid;   i++) amtPaid   += +(ma[i] || 0)
+    for (let i = paid; i < d.total_months; i++) amtRemain += +(ma[i] || 0)
+  } else {
+    amtPaid   = paid   * +d.monthly_amount
+    amtRemain = remain * +d.monthly_amount
+  }
   return {
     paid, remain,
-    pct:       Math.round(paid / d.total_months * 100),
-    amtPaid:   paid * +d.monthly_amount,
-    amtRemain: remain * +d.monthly_amount,
-    done:      remain <= 0
+    pct:      Math.round(paid / d.total_months * 100),
+    amtPaid, amtRemain,
+    done:     remain <= 0
   }
 }
 
@@ -1499,8 +1539,10 @@ function renderDebts() {
       </div>
       <div class="debt-stats">
         <div class="debt-stat">
-          <div class="debt-stat-lbl">ต่อเดือน</div>
-          <div class="debt-stat-val" style="color:var(--red)">฿${fmt(d.monthly_amount)}</div>
+          <div class="debt-stat-lbl">ต่อเดือน${d.monthly_amounts?.length ? ' <span style="font-size:9px;color:var(--purple);background:rgba(155,108,240,.15);padding:1px 5px;border-radius:8px">กำหนดเอง</span>' : ''}</div>
+          <div class="debt-stat-val" style="color:var(--red)">${d.monthly_amounts?.length
+            ? `฿${fmt(Math.min(...d.monthly_amounts))}–${fmt(Math.max(...d.monthly_amounts))}`
+            : `฿${fmt(d.monthly_amount)}`}</div>
         </div>
         <div class="debt-stat">
           <div class="debt-stat-lbl">คงเหลือ</div>
@@ -1526,21 +1568,27 @@ function renderDebts() {
 
 // ── DEBT FORM CALCULATIONS ─────────────────────────────────────────────
 function calcDebtForm() {
-  const total  = +$('debt-total').value  || 0
-  const months = +$('debt-months').value || 0
-  if (total && months) {
-    const monthly = total / months
-    $('debt-monthly').value = monthly.toFixed(2)
-    $('debt-monthly-hint').textContent = `= ฿${fmt(monthly)} / เดือน`
+  const mode = document.querySelector('input[name="debt-mode"]:checked')?.value || 'avg'
+  if (mode === 'avg') {
+    const total  = +$('debt-total').value  || 0
+    const months = +$('debt-months').value || 0
+    if (total && months) {
+      const monthly = total / months
+      $('debt-monthly').value = monthly.toFixed(2)
+      $('debt-monthly-hint').textContent = `= ฿${fmt(monthly)} / เดือน`
+    }
   }
   calcDebtEndDateForm()
 }
 
 function calcDebtFormFromMonthly() {
-  const monthly = +$('debt-monthly').value || 0
-  const months  = +$('debt-months').value  || 0
-  if (monthly && months) {
-    $('debt-total').value = (monthly * months).toFixed(2)
+  const mode = document.querySelector('input[name="debt-mode"]:checked')?.value || 'avg'
+  if (mode === 'avg') {
+    const monthly = +$('debt-monthly').value || 0
+    const months  = +$('debt-months').value  || 0
+    if (monthly && months) {
+      $('debt-total').value = (monthly * months).toFixed(2)
+    }
   }
   calcDebtEndDateForm()
 }
@@ -1554,6 +1602,63 @@ function calcDebtEndDateForm() {
     $('debt-end-year').value  = endYear
     $('debt-end-month').value = endMonth
   }
+  const mode = document.querySelector('input[name="debt-mode"]:checked')?.value
+  if (mode === 'custom') generateCustomMonthlyGrid()
+}
+
+function toggleDebtMode(mode) {
+  const isCustom = mode === 'custom'
+  $('debt-custom-section').classList.toggle('hidden', !isCustom)
+  $('debt-total').readOnly   = isCustom
+  $('debt-monthly').readOnly = isCustom
+  if (isCustom) {
+    $('debt-monthly-hint').textContent = 'คำนวณอัตโนมัติจากรายการด้านล่าง'
+    generateCustomMonthlyGrid()
+  } else {
+    $('debt-total').readOnly   = false
+    $('debt-monthly').readOnly = false
+    $('debt-monthly-hint').textContent = 'กรอก ยอดรวม ÷ จำนวนงวด'
+  }
+}
+
+function generateCustomMonthlyGrid() {
+  const sm = $('debt-start-month').value
+  const sy = +$('debt-start-year').value
+  const m  = +$('debt-months').value
+  const container = $('debt-monthly-rows')
+  if (!sm || !sy || !m) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:6px 0">กรอก เดือน/ปีเริ่ม และ จำนวนงวด ก่อน</div>'
+    return
+  }
+  // preserve existing values keyed by index
+  const existing = {}
+  container.querySelectorAll('.debt-month-input').forEach(inp => {
+    existing[+inp.dataset.idx] = inp.value
+  })
+  const si = MONTHS.indexOf(sm)
+  let html = ''
+  for (let i = 0; i < m; i++) {
+    const month = MONTHS[(si + i) % 12]
+    const year  = sy + Math.floor((si + i) / 12)
+    const val   = existing[i] !== undefined ? existing[i] : (+$('debt-monthly').value || '').toString()
+    html += `<div class="dmr">
+      <span class="dmr-lbl">${String(i+1).padStart(2,'0')} · ${month} ${year}</span>
+      <input type="number" class="fi debt-month-input dmr-inp" data-idx="${i}"
+        value="${val}" min="0" step="0.01" placeholder="0.00" oninput="updateCustomTotal()">
+    </div>`
+  }
+  container.innerHTML = html
+  updateCustomTotal()
+}
+
+function updateCustomTotal() {
+  const inputs = document.querySelectorAll('.debt-month-input')
+  const total  = Array.from(inputs).reduce((s, inp) => s + (+inp.value || 0), 0)
+  $('debt-custom-total').textContent = `฿${fmt(total)}`
+  if (inputs.length > 0) {
+    $('debt-total').value   = total.toFixed(2)
+    $('debt-monthly').value = (total / inputs.length).toFixed(2)
+  }
 }
 
 // ── DEBT MODAL ─────────────────────────────────────────────────────────
@@ -1561,6 +1666,13 @@ function openDebtModal(id = null) {
   G.editingDebtId = id
   $('debt-modal-title').textContent = id ? 'แก้ไขแผนผ่อน' : 'เพิ่มแผนผ่อน'
   $('debt-submit-btn').textContent  = id ? 'บันทึกการแก้ไข' : 'บันทึกแผนผ่อน'
+
+  // reset mode to avg first
+  document.querySelectorAll('input[name="debt-mode"]').forEach(r => { r.checked = r.value === 'avg' })
+  $('debt-custom-section').classList.add('hidden')
+  $('debt-total').readOnly = false
+  $('debt-monthly').readOnly = false
+  $('debt-monthly-hint').textContent = 'กรอก ยอดรวม ÷ จำนวนงวด'
 
   if (id) {
     const d = G.debtPlans.find(x => x.id === id); if (!d) return
@@ -1577,13 +1689,26 @@ function openDebtModal(id = null) {
     $('debt-end-year').value    = d.end_year
     $('debt-notes').value       = d.notes || ''
     $('debt-active').checked    = d.is_active
+    // restore custom mode if plan has monthly_amounts
+    if (d.monthly_amounts && d.monthly_amounts.length > 0) {
+      document.querySelectorAll('input[name="debt-mode"]').forEach(r => { r.checked = r.value === 'custom' })
+      toggleDebtMode('custom')
+      // pre-fill grid values from saved data
+      setTimeout(() => {
+        document.querySelectorAll('.debt-month-input').forEach(inp => {
+          const val = d.monthly_amounts[+inp.dataset.idx]
+          if (val != null) inp.value = val
+        })
+        updateCustomTotal()
+      }, 0)
+    }
   } else {
     $('form-debt').reset()
-    $('debt-id').value         = ''
-    $('debt-start-year').value = new Date().getFullYear()
+    $('debt-id').value          = ''
+    $('debt-start-year').value  = new Date().getFullYear()
     $('debt-start-month').value = MONTHS[new Date().getMonth()]
-    $('debt-who').value        = G.profile?.display_name?.split(' ')[0] || 'SKY'
-    $('debt-active').checked   = true
+    $('debt-who').value         = G.profile?.display_name?.split(' ')[0] || 'SKY'
+    $('debt-active').checked    = true
     $('debt-monthly-hint').textContent = 'กรอก ยอดรวม ÷ จำนวนงวด'
   }
   show('overlay-debt')
@@ -1593,21 +1718,28 @@ function closeDebtModal() { hide('overlay-debt') }
 
 async function saveDebt(e) {
   e.preventDefault()
-  const id = $('debt-id').value
+  const id   = $('debt-id').value
+  const mode = document.querySelector('input[name="debt-mode"]:checked')?.value || 'avg'
+  let monthlyAmounts = null
+  if (mode === 'custom') {
+    const inputs = document.querySelectorAll('.debt-month-input')
+    if (inputs.length > 0) monthlyAmounts = Array.from(inputs).map(inp => +inp.value || 0)
+  }
   const data = {
-    user_id:        G.user.id,
-    name:           $('debt-name').value.trim(),
-    category:       $('debt-cat').value,
-    who:            $('debt-who').value.trim(),
-    total_amount:   +$('debt-total').value || (+$('debt-monthly').value * +$('debt-months').value),
-    monthly_amount: +$('debt-monthly').value,
-    total_months:   +$('debt-months').value,
-    start_year:     +$('debt-start-year').value,
-    start_month:    $('debt-start-month').value,
-    end_year:       +$('debt-end-year').value,
-    end_month:      $('debt-end-month').value,
-    notes:          $('debt-notes').value.trim() || null,
-    is_active:      $('debt-active').checked,
+    user_id:         G.user.id,
+    name:            $('debt-name').value.trim(),
+    category:        $('debt-cat').value,
+    who:             $('debt-who').value.trim(),
+    total_amount:    +$('debt-total').value || (+$('debt-monthly').value * +$('debt-months').value),
+    monthly_amount:  +$('debt-monthly').value,
+    total_months:    +$('debt-months').value,
+    start_year:      +$('debt-start-year').value,
+    start_month:     $('debt-start-month').value,
+    end_year:        +$('debt-end-year').value,
+    end_month:       $('debt-end-month').value,
+    notes:           $('debt-notes').value.trim() || null,
+    is_active:       $('debt-active').checked,
+    monthly_amounts: monthlyAmounts,
   }
   if (!data.end_month) {
     const { endYear, endMonth } = calcDebtEndDate(data.start_year, data.start_month, data.total_months)
