@@ -482,8 +482,8 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
       <div class="page-header">
         <div><div class="page-title">📋 รายการทั้งหมด</div><div class="page-sub" id="tx-sub">—</div></div>
         <div class="toolbar">
-          <button class="btn btn-ghost" onclick="triggerImport()" title="นำเข้าข้อมูลจาก CSV">📥 นำเข้า CSV</button>
-          <button class="btn btn-blue" onclick="openTxModal()">＋ เพิ่มรายการ</button>
+          <button class="btn btn-ghost" data-role="admin" onclick="triggerImport()" title="นำเข้าข้อมูลจาก CSV">📥 นำเข้า CSV</button>
+          <button class="btn btn-blue" data-role="admin" onclick="openTxModal()">＋ เพิ่มรายการ</button>
         </div>
         <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="handleImportFile(event)">
       </div>
@@ -532,7 +532,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <div class="page" id="page-debts">
       <div class="page-header">
         <div><div class="page-title">🗂️ แผนผ่อนชำระ</div><div class="page-sub">ติดตามหนี้ผ่อนทุกรายการ</div></div>
-        <button class="btn btn-blue" onclick="openDebtModal()">＋ เพิ่มแผนผ่อน</button>
+        <button class="btn btn-blue" data-role="admin" onclick="openDebtModal()">＋ เพิ่มแผนผ่อน</button>
       </div>
       <div class="kpi-grid" id="debt-kpi"></div>
       <div class="filters">
@@ -578,7 +578,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
         <div class="tscroll">
           <table>
             <thead><tr>
-              <th>ชื่อ</th><th>อีเมล</th><th>Role</th><th>สถานะ</th><th>สมัครเมื่อ</th><th>จัดการ</th>
+              <th>ชื่อ</th><th>อีเมล</th><th>Role</th><th>สถานะ</th><th>ดู WHO</th><th>สมัครเมื่อ</th><th>จัดการ</th>
             </tr></thead>
             <tbody id="admin-tbody"></tbody>
           </table>
@@ -910,6 +910,7 @@ async function enterApp() {
   $('rail-name').textContent = G.profile.display_name
   $('rail-role').textContent = G.profile.role === 'admin' ? '👑 Admin' : '👤 Member'
   if (G.profile.role === 'admin') $('nav-admin').style.display = ''
+  applyRoleUI()
   await loadAll()
   populateDashFilters()
   populateTxFilters()
@@ -966,6 +967,13 @@ function go(page) {
 // ════════════════════════════════════════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════════════════════════════════════════
+function applyRoleUI() {
+  const isAdmin = G.profile?.role === 'admin'
+  document.querySelectorAll('[data-role="admin"]').forEach(el => {
+    el.classList.toggle('hidden', !isAdmin)
+  })
+}
+
 function populateDashFilters() {
   const years = [...new Set(G.transactions.map(t => t.year))].sort((a,b) => b-a)
   populateSelect('d-year', years, 'ทุกปี')
@@ -1250,9 +1258,9 @@ function renderTxTable() {
       <td>${t.who}</td>
       <td>${statusToggle(t)}</td>
       <td>${dpBadge}</td>
-      <td style="white-space:nowrap">
+      <td style="white-space:nowrap">${G.profile?.role === 'admin' ? `
         <button class="btn btn-ghost btn-xs" onclick="openTxModal(${t.id})" title="แก้ไข">✏️</button>
-        <button class="btn btn-red btn-xs" onclick="confirmDelete('tx',${t.id},'${escHtml(t.sub_category)}')" title="ลบ" style="margin-left:4px">🗑️</button>
+        <button class="btn btn-red btn-xs" onclick="confirmDelete('tx',${t.id},'${escHtml(t.sub_category)}')" title="ลบ" style="margin-left:4px">🗑️</button>` : ''}
       </td>
     </tr>`
   }).join('')
@@ -1283,12 +1291,17 @@ function renderPagination(id, cur, total, cb) {
 // ── STATUS TOGGLE ──────────────────────────────────────────────────────
 function statusToggle(t) {
   const isInc = t.type === 'รายรับ'
+  const isAdmin = G.profile?.role === 'admin'
   if (t.status) {
     const label = isInc ? 'ได้รับแล้ว' : 'จ่ายแล้ว'
     const cls   = isInc ? 'tag-recv' : 'tag-paid'
-    return `<button class="status-btn ${cls}" onclick="toggleStatus(${t.id})">${label}</button>`
+    return isAdmin
+      ? `<button class="status-btn ${cls}" onclick="toggleStatus(${t.id})">${label}</button>`
+      : `<span class="tag ${cls}">${label}</span>`
   }
-  return `<button class="status-btn tag-pend" onclick="toggleStatus(${t.id})">ค้างอยู่</button>`
+  return isAdmin
+    ? `<button class="status-btn tag-pend" onclick="toggleStatus(${t.id})">ค้างอยู่</button>`
+    : `<span class="tag tag-pend">ค้างอยู่</span>`
 }
 
 async function toggleStatus(id) {
@@ -1503,10 +1516,10 @@ function renderDebts() {
         </div>
       </div>
       ${d.notes ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px">${escHtml(d.notes)}</div>` : ''}
-      <div class="debt-actions">
+      ${G.profile?.role === 'admin' ? `<div class="debt-actions">
         <button class="btn btn-ghost btn-xs" onclick="openDebtModal(${d.id})">✏️ แก้ไข</button>
         <button class="btn btn-red btn-xs" onclick="confirmDelete('debt',${d.id},'${escHtml(d.name)}')">🗑️ ลบ</button>
-      </div>
+      </div>` : ''}
     </div>`
   }).join('')
 }
@@ -1649,15 +1662,37 @@ async function renderAdmin() {
   $('admin-count').textContent = `${users.length} คน (รอ ${users.filter(u=>!u.is_approved).length} คน)`
 
   if (!users.length) {
-    $('admin-tbody').innerHTML = '<tr><td colspan="6"><div class="empty">ไม่มีสมาชิก</div></td></tr>'
+    $('admin-tbody').innerHTML = '<tr><td colspan="7"><div class="empty">ไม่มีสมาชิก</div></td></tr>'
     return
   }
 
+  // WHO values from loaded transactions for dropdown
+  const whoOptions = [...new Set(G.transactions.map(t => t.who))].sort()
+
   $('admin-tbody').innerHTML = users.map(u => {
     const isMe = u.id === G.user.id
-    const approvedBadge  = u.is_approved ? '<span class="tag tag-approved">อนุมัติแล้ว</span>' : '<span class="tag tag-waiting">รอการอนุมัติ</span>'
-    const roleBadge      = u.role === 'admin' ? '<span class="tag tag-admin">Admin</span>' : '<span class="tag tag-member">Member</span>'
-    const createdDate    = new Date(u.created_at).toLocaleDateString('th-TH', {year:'numeric',month:'short',day:'numeric'})
+    const approvedBadge = u.is_approved
+      ? '<span class="tag tag-approved">อนุมัติแล้ว</span>'
+      : '<span class="tag tag-waiting">รอการอนุมัติ</span>'
+    const roleBadge = u.role === 'admin'
+      ? '<span class="tag tag-admin">Admin</span>'
+      : '<span class="tag tag-member">Member</span>'
+    const createdDate = new Date(u.created_at).toLocaleDateString('th-TH', {year:'numeric',month:'short',day:'numeric'})
+
+    // WHO dropdown — เฉพาะ member, ไม่ใช่ตัวเอง
+    let whoCell
+    if (u.role === 'admin') {
+      whoCell = '<span style="font-size:11px;color:var(--text3)">ทั้งหมด</span>'
+    } else if (isMe) {
+      whoCell = '<span style="font-size:11px;color:var(--text3)">—</span>'
+    } else {
+      const opts = ['', ...whoOptions].map(w =>
+        `<option value="${escHtml(w)}" ${u.who_tag === w ? 'selected' : ''}>${w || '— ยังไม่กำหนด —'}</option>`
+      ).join('')
+      whoCell = `<select class="fsel" style="font-size:11px;padding:4px 8px"
+        onchange="adminSetWhoTag('${u.id}', this.value)">${opts}</select>`
+    }
+
     const actions = isMe ? '<span style="font-size:11px;color:var(--text3)">— (คุณ) —</span>' : `
       ${!u.is_approved
         ? `<button class="btn btn-green btn-xs" onclick="adminApprove('${u.id}',true)">✓ อนุมัติ</button>`
@@ -1667,11 +1702,13 @@ async function renderAdmin() {
         ? `<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="adminSetRole('${u.id}','admin')">▲ Admin</button>`
         : `<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="adminSetRole('${u.id}','member')">▼ Member</button>`
       }`
-    return `<tr class="${!u.is_approved?'user-row-pending':''}">
+
+    return `<tr class="${!u.is_approved ? 'user-row-pending' : ''}">
       <td style="font-weight:600">${escHtml(u.display_name)}</td>
       <td style="font-family:var(--mono);font-size:12px">${escHtml(u.email)}</td>
       <td>${roleBadge}</td>
       <td>${approvedBadge}</td>
+      <td>${whoCell}</td>
       <td style="font-size:12px;color:var(--text2)">${createdDate}</td>
       <td style="white-space:nowrap">${actions}</td>
     </tr>`
@@ -1694,6 +1731,12 @@ async function adminSetRole(userId, role) {
   if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
   toast(`✓ เปลี่ยน role เป็น ${role} แล้ว`)
   renderAdmin()
+}
+
+async function adminSetWhoTag(userId, whoTag) {
+  const { error } = await db.rpc('admin_set_who_tag', { p_user_id: userId, p_who_tag: whoTag })
+  if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
+  toast(whoTag ? `✓ กำหนด WHO = ${whoTag} แล้ว` : '✓ ล้างค่า WHO แล้ว')
 }
 
 // ════════════════════════════════════════════════════════════════════════
