@@ -311,6 +311,8 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 .ds-row-pend td{background:rgba(240,180,50,.03)}
 .ds-foot-paid td{border-top:1px solid var(--line);font-size:11px;font-family:var(--mono)}
 .ds-foot-pend td{font-size:11px;font-family:var(--mono);border-bottom:2px solid var(--line)}
+.ds-month-click{cursor:pointer;user-select:none;transition:background .15s}
+.ds-month-click:hover{background:rgba(61,142,240,.22) !important}
 
 /* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
 @media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
@@ -2220,7 +2222,9 @@ function renderDebtSummary() {
     })
     html += '</tr><tr>'
     cols.forEach(c => {
-      html += `<th style="text-align:right" class="${c.isCur ? 'ds-cur' : ''}">${c.label}</th>`
+      const cls = (c.isCur ? 'ds-cur ' : '') + (isAdmin ? 'ds-month-click' : '')
+      const click = isAdmin ? `onclick="toggleMonthStatus('${c.key}')" title="คลิกเพื่อ toggle ทั้งเดือน"` : ''
+      html += `<th style="text-align:right" class="${cls}" ${click}>${c.label}</th>`
     })
     html += '</tr>'
   } else {
@@ -2235,7 +2239,9 @@ function renderDebtSummary() {
     html += '<th class="ds-sticky" style="left:160px"></th>'
     html += '<th class="ds-sticky" style="left:250px"></th>'
     cols.forEach(c => {
-      html += `<th style="text-align:right" class="${c.isCur ? 'ds-cur' : ''}">${c.label}</th>`
+      const cls = (c.isCur ? 'ds-cur ' : '') + (isAdmin ? 'ds-month-click' : '')
+      const click = isAdmin ? `onclick="toggleMonthStatus('${c.key}')" title="คลิกเพื่อ toggle ทั้งเดือน"` : ''
+      html += `<th style="text-align:right" class="${cls}" ${click}>${c.label}</th>`
     })
     html += '</tr>'
   }
@@ -2324,6 +2330,47 @@ async function toggleCellStatus(txIdsStr, allPaid) {
   txs.forEach(t => { t.status = newStatus })
   renderDebtSummary()
   toast(newStatus ? '✓ บันทึกว่าจ่ายแล้ว' : '↩ ยกเลิกสถานะ')
+}
+
+async function toggleMonthStatus(colKey) {
+  if (G.profile?.role !== 'admin') return
+  const activeYear = $('ds-year').value
+  const whoFilter  = $('ds-who').value
+  const typeFilter = $('ds-type').value
+  const multiYear  = activeYear === 'ALL'
+  let txs = G.transactions
+  if (activeYear !== 'ALL') txs = txs.filter(t => t.year == activeYear)
+  if (whoFilter  !== 'ALL') txs = txs.filter(t => t.who  === whoFilter)
+  if (typeFilter !== 'ALL') txs = txs.filter(t => t.type === typeFilter)
+  const colTxs = txs.filter(t => (multiYear ? `${t.year}-${t.month}` : String(t.month)) === String(colKey))
+  if (!colTxs.length) return
+  const allPaid = colTxs.every(t => t.status !== '')
+  const ids = colTxs.map(t => t.id)
+  // different types may coexist in a month — update each with its own status label
+  const byType = {}
+  colTxs.forEach(t => { byType[t.id] = allPaid ? '' : (t.type === 'รายรับ' ? 'ได้รับแล้ว' : 'จ่ายแล้ว') })
+  const newStatus = allPaid ? '' : 'จ่ายแล้ว' // used only for single-type fallback
+  // batch update (all same status when toggling off; mixed when toggling on)
+  if (allPaid) {
+    const { error } = await db.from('transactions').update({ status: '' }).in('id', ids)
+    if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
+    colTxs.forEach(t => { t.status = '' })
+  } else {
+    // group by status value to minimise round-trips
+    const groups = {}
+    colTxs.forEach(t => {
+      const s = byType[t.id]
+      if (!groups[s]) groups[s] = []
+      groups[s].push(t.id)
+    })
+    for (const [s, gids] of Object.entries(groups)) {
+      const { error } = await db.from('transactions').update({ status: s }).in('id', gids)
+      if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
+    }
+    colTxs.forEach(t => { t.status = byType[t.id] })
+  }
+  renderDebtSummary()
+  toast(allPaid ? '↩ ยกเลิกสถานะทั้งเดือน' : `✓ บันทึกจ่ายแล้วทั้งเดือน (${ids.length} รายการ)`)
 }
 
 // ════════════════════════════════════════════════════════════════════════
