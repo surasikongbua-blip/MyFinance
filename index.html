@@ -550,13 +550,14 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ DEBT SUMMARY TABLE ══════════════════════════════════════════ -->
     <div class="page" id="page-debt-summary">
       <div class="page-header">
-        <div><div class="page-title">📆 ตารางค่าใช้จ่ายรายเดือน</div><div class="page-sub">สรุปค่าผ่อนชำระทุกรายการแยกตามเดือน</div></div>
+        <div><div class="page-title">📆 ตารางค่าใช้จ่ายรายเดือน</div><div class="page-sub" id="ds-sub">สรุปรายการทั้งหมดแยกตามเดือน</div></div>
         <div class="toolbar">
+          <select class="fsel" id="ds-year" onchange="renderDebtSummary()"><option value="ALL">ทุกปี</option></select>
           <select class="fsel" id="ds-who" onchange="renderDebtSummary()"><option value="ALL">ทุกคน</option></select>
-          <select class="fsel" id="ds-status" onchange="renderDebtSummary()">
-            <option value="ALL">ทุกสถานะ</option>
-            <option value="active">กำลังผ่อน</option>
-            <option value="done">ชำระครบ</option>
+          <select class="fsel" id="ds-type" onchange="renderDebtSummary()">
+            <option value="รายจ่าย">รายจ่าย</option>
+            <option value="รายรับ">รายรับ</option>
+            <option value="ALL">ทั้งหมด</option>
           </select>
         </div>
       </div>
@@ -1850,97 +1851,154 @@ if (loginPass)  loginPass.addEventListener('keydown',  e => { if (e.key === 'Ent
 if (loginEmail) loginEmail.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
 
 // ════════════════════════════════════════════════════════════════════════
-// DEBT SUMMARY TABLE
+// EXPENSE SUMMARY TABLE (pivot: sub_category × month)
 // ════════════════════════════════════════════════════════════════════════
 function renderDebtSummary() {
-  const whoFilter    = $('ds-who').value
-  const statusFilter = $('ds-status').value
+  const now       = new Date()
+  const curYear   = now.getFullYear()
+  const curMonth  = MONTHS[now.getMonth()]
 
-  // populate WHO filter
-  const whos = [...new Set(G.debtPlans.map(d => d.who))].sort()
+  // populate year + who filters (preserve selection)
+  const years = [...new Set(G.transactions.map(t => t.year))].sort((a,b) => b-a)
+  populateSelect('ds-year', years.map(String), 'ทุกปี')
+  const whos = [...new Set(G.transactions.map(t => t.who))].sort()
   populateSelect('ds-who', whos, 'ทุกคน')
 
-  let plans = G.debtPlans
-  if (whoFilter !== 'ALL') plans = plans.filter(d => d.who === whoFilter)
-  if (statusFilter === 'active') plans = plans.filter(d => d.is_active && !dsIsDone(d))
-  else if (statusFilter === 'done') plans = plans.filter(d => dsIsDone(d))
+  const yearFilter = $('ds-year').value
+  const whoFilter  = $('ds-who').value
+  const typeFilter = $('ds-type').value
 
-  if (!plans.length) {
-    $('ds-content').innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div class="empty-msg">ไม่พบแผนผ่อน</div></div>'
+  // default year to current year on first load
+  if ($('ds-year').value === 'ALL' && years.includes(curYear)) {
+    $('ds-year').value = String(curYear)
+  }
+  const activeYear = $('ds-year').value
+
+  // filter transactions
+  let txs = G.transactions
+  if (activeYear !== 'ALL') txs = txs.filter(t => t.year == activeYear)
+  if (whoFilter  !== 'ALL') txs = txs.filter(t => t.who  === whoFilter)
+  if (typeFilter !== 'ALL') txs = txs.filter(t => t.type === typeFilter)
+
+  if (!txs.length) {
+    $('ds-content').innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div class="empty-msg">ไม่พบรายการ</div></div>'
     return
   }
 
-  // build full month range across all plans
-  const toIdx = (y, m) => y * 12 + MONTHS.indexOf(m)
-  const fromIdx = idx => ({ year: Math.floor(idx / 12), month: MONTHS[idx % 12] })
-
-  const minIdx = Math.min(...plans.map(d => toIdx(d.start_year, d.start_month)))
-  const maxIdx = Math.max(...plans.map(d => toIdx(d.end_year, d.end_month)))
-
-  const now = new Date()
-  const curIdx = toIdx(now.getFullYear(), MONTHS[now.getMonth()])
-
-  // build columns list [{year, month, idx}]
-  const cols = []
-  for (let i = minIdx; i <= maxIdx; i++) {
-    const { year, month } = fromIdx(i)
-    cols.push({ year, month, idx: i })
+  // build columns: all 12 months if single year, else full range
+  let cols   // [{label, yearLabel, isCur}]
+  let multiYear = false
+  if (activeYear !== 'ALL') {
+    const y = parseInt(activeYear)
+    cols = MONTHS.map(m => ({ key: m, label: m, year: y, isCur: y === curYear && m === curMonth }))
+  } else {
+    multiYear = true
+    const toIdx = (y, m) => y * 12 + MONTHS.indexOf(m)
+    const fromIdx = i => ({ year: Math.floor(i / 12), month: MONTHS[i % 12] })
+    const minIdx = Math.min(...txs.map(t => toIdx(t.year, t.month)))
+    const maxIdx = Math.max(...txs.map(t => toIdx(t.year, t.month)))
+    cols = []
+    for (let i = minIdx; i <= maxIdx; i++) {
+      const { year, month } = fromIdx(i)
+      cols.push({ key: `${year}-${month}`, label: month, year, isCur: year === curYear && month === curMonth })
+    }
   }
 
-  // group columns by year for header
-  const yearGroups = []
-  let lastY = null
-  cols.forEach(c => {
-    if (c.year !== lastY) { yearGroups.push({ year: c.year, count: 1 }); lastY = c.year }
-    else yearGroups[yearGroups.length - 1].count++
+  // build pivot: key = "sub_category||category||who(if all)" → {month_key → sum}
+  const pivot = {}
+  txs.forEach(t => {
+    const rowKey = whoFilter === 'ALL'
+      ? `${t.sub_category}||${t.category}||__ALL__`
+      : `${t.sub_category}||${t.category}||${t.who}`
+    if (!pivot[rowKey]) pivot[rowKey] = {
+      name: t.sub_category,
+      category: t.category,
+      who: whoFilter === 'ALL' ? null : t.who,
+      months: {}
+    }
+    const colKey = multiYear ? `${t.year}-${t.month}` : t.month
+    pivot[rowKey].months[colKey] = (pivot[rowKey].months[colKey] || 0) + Number(t.amount)
   })
 
-  // render
-  let html = '<div class="ds-wrap"><table class="ds-table">'
+  // sort rows: by category then sub_category
+  const rows = Object.values(pivot).sort((a,b) =>
+    a.category.localeCompare(b.category, 'th') || a.name.localeCompare(b.name, 'th')
+  )
 
-  // thead row 1: year spans
-  html += '<thead><tr>'
-  html += '<th class="ds-sticky" style="left:0;min-width:160px" rowspan="2">รายการ</th>'
-  html += '<th class="ds-sticky" style="left:160px;min-width:80px" rowspan="2">ช่องทาง</th>'
-  html += '<th class="ds-sticky" style="left:240px;min-width:44px;text-align:center" rowspan="2">งวด</th>'
-  yearGroups.forEach(yg => {
-    html += `<th class="ds-yr-head" colspan="${yg.count}">${yg.year}</th>`
-  })
-  html += '</tr>'
-
-  // thead row 2: month names
-  html += '<tr>'
-  cols.forEach(c => {
-    const isCur = c.idx === curIdx
-    html += `<th style="text-align:right" class="${isCur ? 'ds-cur' : ''}">${c.month}</th>`
-  })
-  html += '</tr></thead><tbody>'
-
-  // rows
+  // totals per column
   const totals = {}
-  cols.forEach(c => { totals[c.idx] = 0 })
+  cols.forEach(c => { totals[c.key] = 0 })
+  rows.forEach(r => {
+    cols.forEach(c => { totals[c.key] += r.months[c.key] || 0 })
+  })
 
-  plans.forEach(d => {
-    const startIdx = toIdx(d.start_year, d.start_month)
-    const endIdx   = toIdx(d.end_year,   d.end_month)
-    const done     = dsIsDone(d)
-    const whoClass = 'ds-who-' + (d.who || 'SKY').toUpperCase().replace(/\s/g,'')
-    const rowClass = (!d.is_active || done) ? ' ds-inactive' : ''
-
-    html += `<tr class="${rowClass}">`
-    html += `<td class="ds-sticky ds-name" style="left:0">${escHtml(d.name)}<span class="ds-who-badge ${whoClass}">${escHtml(d.who)}</span></td>`
-    html += `<td class="ds-sticky ds-ch" style="left:160px">${escHtml(d.category)}</td>`
-    html += `<td class="ds-sticky ds-mo" style="left:240px">${d.total_months}</td>`
-
+  // group cols by year for header (used in multi-year mode)
+  const yearGroups = []
+  if (multiYear) {
+    let lastY = null
     cols.forEach(c => {
-      const isCur = c.idx === curIdx
-      const active = c.idx >= startIdx && c.idx <= endIdx
-      if (active) {
-        const cls = 'ds-amt ds-active' + (isCur ? ' ds-cur' : '')
-        html += `<td class="${cls}">${fmt(d.monthly_amount)}</td>`
-        if (d.is_active) totals[c.idx] += Number(d.monthly_amount)
+      if (c.year !== lastY) { yearGroups.push({ year: c.year, count: 1 }); lastY = c.year }
+      else yearGroups[yearGroups.length - 1].count++
+    })
+  }
+
+  // update subtitle
+  const typeLabel = typeFilter === 'ALL' ? 'ทุกประเภท' : typeFilter
+  const whoLabel  = whoFilter  === 'ALL' ? 'ทุกคน' : whoFilter
+  $('ds-sub').textContent = `${typeLabel} · ${whoLabel} · ${rows.length} รายการ`
+
+  // ── render ──────────────────────────────────────────────────────────────
+  let html = '<div class="ds-wrap"><table class="ds-table"><thead>'
+
+  // row 1: year spans (multi-year) or single year header
+  if (multiYear) {
+    html += '<tr>'
+    html += '<th class="ds-sticky" style="left:0;min-width:160px" rowspan="2">รายการ</th>'
+    html += '<th class="ds-sticky" style="left:160px;min-width:90px" rowspan="2">หมวด</th>'
+    html += '<th class="ds-sticky" style="left:250px;min-width:40px;text-align:center" rowspan="2">เดือน</th>'
+    yearGroups.forEach(yg => {
+      html += `<th class="ds-yr-head" colspan="${yg.count}">${yg.year}</th>`
+    })
+    html += '</tr><tr>'
+    cols.forEach(c => {
+      html += `<th style="text-align:right" class="${c.isCur ? 'ds-cur' : ''}">${c.label}</th>`
+    })
+    html += '</tr>'
+  } else {
+    const y = parseInt(activeYear)
+    html += '<tr>'
+    html += '<th class="ds-sticky" style="left:0;min-width:160px">รายการ</th>'
+    html += '<th class="ds-sticky" style="left:160px;min-width:90px">หมวด</th>'
+    html += '<th class="ds-sticky" style="left:250px;min-width:40px;text-align:center">เดือน</th>'
+    html += `<th class="ds-yr-head" colspan="${cols.length}">${y}</th>`
+    html += '</tr><tr>'
+    html += '<th class="ds-sticky" style="left:0"></th>'
+    html += '<th class="ds-sticky" style="left:160px"></th>'
+    html += '<th class="ds-sticky" style="left:250px"></th>'
+    cols.forEach(c => {
+      html += `<th style="text-align:right" class="${c.isCur ? 'ds-cur' : ''}">${c.label}</th>`
+    })
+    html += '</tr>'
+  }
+
+  html += '</thead><tbody>'
+
+  // data rows
+  rows.forEach(r => {
+    const whoClass = r.who ? 'ds-who-' + r.who.toUpperCase().replace(/\s/g,'') : ''
+    const activeCount = cols.filter(c => r.months[c.key] > 0).length
+    html += '<tr>'
+    html += `<td class="ds-sticky ds-name" style="left:0">${escHtml(r.name)}`
+    if (r.who) html += `<span class="ds-who-badge ${whoClass}">${escHtml(r.who)}</span>`
+    html += '</td>'
+    html += `<td class="ds-sticky ds-ch" style="left:160px">${escHtml(r.category)}</td>`
+    html += `<td class="ds-sticky ds-mo" style="left:250px">${activeCount}</td>`
+    cols.forEach(c => {
+      const val = r.months[c.key] || 0
+      if (val) {
+        html += `<td class="ds-amt ds-active${c.isCur ? ' ds-cur' : ''}">${fmt(val)}</td>`
       } else {
-        html += `<td class="ds-amt${isCur ? ' ds-cur' : ''}"></td>`
+        html += `<td class="ds-amt${c.isCur ? ' ds-cur' : ''}"></td>`
       }
     })
     html += '</tr>'
@@ -1950,24 +2008,15 @@ function renderDebtSummary() {
   html += '<tr class="ds-total-row">'
   html += '<td class="ds-sticky ds-name" style="left:0;font-weight:800">รวมทั้งหมด</td>'
   html += '<td class="ds-sticky" style="left:160px"></td>'
-  html += '<td class="ds-sticky" style="left:240px"></td>'
+  html += '<td class="ds-sticky" style="left:250px"></td>'
   cols.forEach(c => {
-    const isCur = c.idx === curIdx
-    const val = totals[c.idx]
-    const cls = 'ds-amt' + (isCur ? ' ds-cur' : '')
-    html += `<td class="${cls}">${val > 0 ? fmt(val) : ''}</td>`
+    const val = totals[c.key]
+    html += `<td class="ds-amt${c.isCur ? ' ds-cur' : ''}">${val > 0 ? fmt(val) : ''}</td>`
   })
   html += '</tr>'
 
   html += '</tbody></table></div>'
   $('ds-content').innerHTML = html
-}
-
-function dsIsDone(d) {
-  const toIdx = (y, m) => y * 12 + MONTHS.indexOf(m)
-  const now = new Date()
-  const curIdx = toIdx(now.getFullYear(), MONTHS[now.getMonth()])
-  return toIdx(d.end_year, d.end_month) < curIdx
 }
 
 // ════════════════════════════════════════════════════════════════════════
