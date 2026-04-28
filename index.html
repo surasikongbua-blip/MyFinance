@@ -1763,21 +1763,81 @@ async function saveDebt(e) {
   showLoading(false)
 
   if (error) { toast('บันทึกล้มเหลว: ' + error.message, 'err'); return }
+
+  // sync transactions from this plan
+  const planData = id ? {...data, id: +id} : G.debtPlans[0]
+  showLoading(true)
+  const syncErr = await syncDebtPlanTransactions(planData, !id)
+  if (syncErr) toast('⚠️ sync transactions ล้มเหลว: ' + syncErr.message, 'err')
+  // reload all so every page reflects the new transactions
+  await loadAll()
+  showLoading(false)
+
   closeDebtModal()
   populateDebtFilters()
+  populateTxFilters()
   renderDebts()
   renderDash()
-  toast(id ? '✓ แก้ไขแผนผ่อนแล้ว' : '✓ เพิ่มแผนผ่อนแล้ว')
+  toast(id ? `✓ แก้ไขแผนผ่อน + อัปเดต ${planData.total_months} รายการธุรกรรมแล้ว`
+           : `✓ เพิ่มแผนผ่อน + สร้าง ${planData.total_months} รายการธุรกรรมอัตโนมัติแล้ว`)
+}
+
+async function syncDebtPlanTransactions(plan, isNew) {
+  const si = MONTHS.indexOf(plan.start_month)
+
+  // build all installments for this plan
+  const installments = []
+  for (let i = 0; i < plan.total_months; i++) {
+    const month = MONTHS[(si + i) % 12]
+    const year  = plan.start_year + Math.floor((si + i) / 12)
+    const amount = (plan.monthly_amounts && plan.monthly_amounts[i] != null)
+      ? +plan.monthly_amounts[i]
+      : +plan.monthly_amount
+    installments.push({ year, month, amount })
+  }
+
+  // preserve existing payment statuses before wiping
+  let statusMap = {}
+  if (!isNew) {
+    const { data: existing } = await db
+      .from('transactions').select('year,month,status').eq('debt_plan_id', plan.id)
+    ;(existing || []).forEach(t => { statusMap[`${t.year}-${t.month}`] = t.status })
+    // delete all linked transactions
+    const { error: delErr } = await db.from('transactions').delete().eq('debt_plan_id', plan.id)
+    if (delErr) return delErr
+  }
+
+  // recreate transactions (with preserved status where applicable)
+  const txs = installments.map(inst => ({
+    user_id:      plan.user_id,
+    year:         inst.year,
+    month:        inst.month,
+    category:     plan.category,
+    sub_category: plan.name,
+    type:         'รายจ่าย',
+    amount:       inst.amount,
+    who:          plan.who,
+    status:       statusMap[`${inst.year}-${inst.month}`] || '',
+    debt_plan_id: plan.id,
+    notes:        null
+  }))
+
+  const { error } = await db.from('transactions').insert(txs)
+  return error || null
 }
 
 async function deleteDebt(id) {
   showLoading(true)
+  // delete linked transactions first (preserve payment history is optional; here we remove all)
+  await db.from('transactions').delete().eq('debt_plan_id', id)
   const { error } = await db.from('debt_plans').delete().eq('id', id)
   showLoading(false)
   if (error) { toast('ลบล้มเหลว: ' + error.message, 'err'); return }
   G.debtPlans = G.debtPlans.filter(d => d.id !== id)
+  await loadAll()
   renderDebts()
-  toast('🗑️ ลบแผนผ่อนแล้ว')
+  renderDash()
+  toast('🗑️ ลบแผนผ่อนและรายการธุรกรรมที่เชื่อมโยงแล้ว')
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1878,7 +1938,7 @@ let _confirmCb = null
 function confirmDelete(type, id, name) {
   $('confirm-msg').textContent    = `ต้องการลบ "${name}"?`
   $('confirm-detail').textContent = type === 'debt'
-    ? 'แผนผ่อนนี้จะถูกลบออก แต่รายการที่ลิงก์ไว้จะยังคงอยู่'
+    ? 'แผนผ่อนนี้จะถูกลบออก รวมถึงรายการธุรกรรมทุกงวดที่สร้างอัตโนมัติด้วย'
     : 'รายการนี้จะถูกลบถาวร'
   _confirmCb = () => { type === 'tx' ? deleteTx(id) : deleteDebt(id); closeConfirm() }
   $('confirm-ok-btn').onclick = _confirmCb
