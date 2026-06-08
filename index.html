@@ -314,6 +314,11 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 .ds-month-click{cursor:pointer;user-select:none;transition:background .15s}
 .ds-month-click:hover{background:rgba(61,142,240,.22) !important}
 
+/* ── TX BULK SELECT ─────────────────────────────────────────────────────── */
+.tx-sel-row td{background:rgba(61,142,240,.07) !important}
+.tx-check{width:15px;height:15px;cursor:pointer;accent-color:var(--blue);flex-shrink:0}
+.tx-bulk-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(240,180,50,.08);border-bottom:1px solid rgba(240,180,50,.2)}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
 @media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
 @media(max-width:700px){
@@ -496,7 +501,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ TRANSACTIONS ════════════════════════════════════════════════ -->
     <div class="page" id="page-transactions">
       <div class="page-header">
-        <div><div class="page-title">📋 รายการทั้งหมด</div><div class="page-sub" id="tx-sub">—</div></div>
+        <div><div class="page-title">📋 รายการทั้งหมด</div><div class="page-sub" id="tx-page-sub">—</div></div>
         <div class="toolbar">
           <button class="btn btn-ghost" data-role="admin" onclick="triggerImport()" title="นำเข้าข้อมูลจาก CSV">📥 นำเข้า CSV</button>
           <button class="btn btn-blue" data-role="admin" onclick="openTxModal()">＋ เพิ่มรายการ</button>
@@ -530,9 +535,10 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
           <span class="tbox-title">รายการ</span>
           <span class="tcount" id="tx-count">0 รายการ</span>
         </div>
+        <div class="tx-bulk-bar hidden" id="tx-bulk-bar"></div>
         <div class="tscroll">
           <table>
-            <thead><tr>
+            <thead><tr id="tx-thead-row">
               <th>เดือน/ปี</th><th>หมวด</th><th>รายการ</th><th>ประเภท</th>
               <th style="text-align:right">จำนวนเงิน</th><th>ใคร</th><th>สถานะ</th><th>แผนผ่อน</th><th></th>
             </tr></thead>
@@ -834,7 +840,7 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let G = {
   user: null, profile: null,
   transactions: [], debtPlans: [],
-  txFiltered: [], txPage: 1,
+  txFiltered: [], txPage: 1, txSelected: new Set(),
   monthlyCollapsed: {},
   monthlyInitDone: false,
   page: 'dashboard',
@@ -1265,6 +1271,7 @@ function applyTxFilters() {
     return true
   })
   G.txPage = 1
+  G.txSelected = new Set()
   renderTxTable()
 }
 
@@ -1273,25 +1280,36 @@ function renderTransactions() {
 }
 
 function renderTxTable() {
-  const rows = G.txFiltered
-  const total = rows.length
-  const start = (G.txPage - 1) * TX_PER_PAGE
-  const page  = rows.slice(start, start + TX_PER_PAGE)
+  const rows    = G.txFiltered
+  const total   = rows.length
+  const start   = (G.txPage - 1) * TX_PER_PAGE
+  const page    = rows.slice(start, start + TX_PER_PAGE)
+  const isAdmin = G.profile?.role === 'admin'
+  const cols    = isAdmin ? 10 : 9
 
-  $('tx-sub').textContent   = `${total} รายการ`
-  $('tx-count').textContent = `${total} รายการ`
+  $('tx-page-sub').textContent = `${total} รายการ`
+  $('tx-count').textContent    = `${total} รายการ`
+
+  // ── thead ──────────────────────────────────────────────────────────────
+  $('tx-thead-row').innerHTML =
+    (isAdmin ? '<th style="width:36px;padding:9px 8px"><input type="checkbox" id="tx-check-all" class="tx-check" onchange="toggleSelectAll(this)"></th>' : '') +
+    '<th>เดือน/ปี</th><th>หมวด</th><th>รายการ</th><th>ประเภท</th>' +
+    '<th style="text-align:right">จำนวนเงิน</th><th>ใคร</th><th>สถานะ</th><th>แผนผ่อน</th><th></th>'
 
   if (!page.length) {
-    $('tx-tbody').innerHTML = `<tr><td colspan="9"><div class="empty" style="padding:32px"><div class="empty-ico">🔍</div><div class="empty-msg">ไม่พบรายการ</div></div></td></tr>`
+    $('tx-tbody').innerHTML = `<tr><td colspan="${cols}"><div class="empty" style="padding:32px"><div class="empty-ico">🔍</div><div class="empty-msg">ไม่พบรายการ</div></div></td></tr>`
     $('tx-tfoot').innerHTML = ''
     $('tx-pag').innerHTML   = ''
+    if (isAdmin) updateTxBulkBar()
     return
   }
 
   $('tx-tbody').innerHTML = page.map(t => {
-    const dp  = G.debtPlans.find(d => d.id === t.debt_plan_id)
+    const dp      = G.debtPlans.find(d => d.id === t.debt_plan_id)
     const dpBadge = dp ? `<span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:2px 7px;border-radius:20px;white-space:nowrap">${dp.name}</span>` : ''
-    return `<tr>
+    const sel     = G.txSelected.has(t.id)
+    return `<tr class="${sel ? 'tx-sel-row' : ''}">
+      ${isAdmin ? `<td style="padding:8px 6px;text-align:center"><input type="checkbox" class="tx-check" ${sel?'checked':''} onchange="toggleTxSelect(${t.id},this.checked)"></td>` : ''}
       <td style="font-family:var(--mono);white-space:nowrap">${t.month} ${t.year}</td>
       <td>${t.category}</td>
       <td>${t.sub_category}${t.notes?`<span style="font-size:10px;color:var(--text3);display:block">${t.notes}</span>`:''}</td>
@@ -1300,7 +1318,7 @@ function renderTxTable() {
       <td>${t.who}</td>
       <td>${statusToggle(t)}</td>
       <td>${dpBadge}</td>
-      <td style="white-space:nowrap">${G.profile?.role === 'admin' ? `
+      <td style="white-space:nowrap">${isAdmin ? `
         <button class="btn btn-ghost btn-xs" onclick="openTxModal(${t.id})" title="แก้ไข">✏️</button>
         <button class="btn btn-red btn-xs" onclick="confirmDelete('tx',${t.id},'${escHtml(t.sub_category)}')" title="ลบ" style="margin-left:4px">🗑️</button>` : ''}
       </td>
@@ -1310,10 +1328,19 @@ function renderTxTable() {
   const totInc = rows.filter(t=>t.type==='รายรับ').reduce((s,t)=>s+ +t.amount,0)
   const totExp = rows.filter(t=>t.type==='รายจ่าย').reduce((s,t)=>s+ +t.amount,0)
   $('tx-tfoot').innerHTML = `<tr>
-    <td colspan="4" style="color:var(--text3)">รวม ${total} รายการ</td>
+    <td colspan="${isAdmin ? 5 : 4}" style="color:var(--text3)">รวม ${total} รายการ</td>
     <td style="text-align:right"><span class="c-green" style="font-family:var(--mono)">+฿${fmt(totInc)}</span> / <span class="c-red" style="font-family:var(--mono)">-฿${fmt(totExp)}</span></td>
     <td colspan="4"></td>
   </tr>`
+
+  if (isAdmin) {
+    const pageIds    = page.map(t => t.id)
+    const allChecked = pageIds.length > 0 && pageIds.every(id => G.txSelected.has(id))
+    const someChecked = pageIds.some(id => G.txSelected.has(id))
+    const chkAll = $('tx-check-all')
+    if (chkAll) { chkAll.checked = allChecked; chkAll.indeterminate = !allChecked && someChecked }
+    updateTxBulkBar()
+  }
 
   renderPagination('tx-pag', G.txPage, Math.ceil(total/TX_PER_PAGE), p => { G.txPage = p; renderTxTable() })
 }
@@ -1393,42 +1420,58 @@ function closeTxModal() { hide('overlay-tx') }
 
 async function saveTx(e) {
   e.preventDefault()
-  const id = $('tx-id').value
-  const data = {
-    user_id:      G.user.id,
-    year:         +$('tx-year').value,
-    month:        $('tx-month').value,
-    category:     $('tx-cat').value.trim(),
-    sub_category: $('tx-sub').value.trim(),
-    type:         document.querySelector('input[name="tx-type"]:checked').value,
-    amount:       +$('tx-amount').value,
-    who:          $('tx-who').value.trim(),
-    status:       $('tx-status').value,
-    debt_plan_id: $('tx-debt-plan').value ? +$('tx-debt-plan').value : null,
-    notes:        $('tx-notes').value.trim() || null,
-  }
+  try {
+    const typeEl = document.querySelector('input[name="tx-type"]:checked')
+    if (!typeEl) { toast('กรุณาเลือกประเภทรายการ', 'err'); return }
 
-  showLoading(true)
-  let error
-  if (id) {
-    const res = await db.from('transactions').update(data).eq('id', id)
-    error = res.error
-    if (!error) {
-      const idx = G.transactions.findIndex(t => t.id == id)
-      if (idx >= 0) G.transactions[idx] = {...G.transactions[idx], ...data, id:+id}
+    const id = $('tx-id').value
+    const data = {
+      user_id:      G.user?.id,
+      year:         +$('tx-year').value,
+      month:        $('tx-month').value,
+      category:     $('tx-cat').value.trim(),
+      sub_category: $('tx-sub').value.trim(),
+      type:         typeEl.value,
+      amount:       +$('tx-amount').value,
+      who:          $('tx-who').value.trim(),
+      status:       $('tx-status').value,
+      debt_plan_id: $('tx-debt-plan').value ? +$('tx-debt-plan').value : null,
+      notes:        $('tx-notes').value.trim() || null,
     }
-  } else {
-    const res = await db.from('transactions').insert(data).select().single()
-    error = res.error
-    if (!error && res.data) { G.transactions.unshift(res.data); G.transactions.sort(txSort) }
-  }
-  showLoading(false)
 
-  if (error) { toast('บันทึกล้มเหลว: ' + error.message, 'err'); return }
-  closeTxModal()
-  applyTxFilters()
-  populateTxFilters()
-  toast(id ? '✓ แก้ไขรายการแล้ว' : '✓ เพิ่มรายการแล้ว')
+    showLoading(true)
+    let error
+    if (id) {
+      const res = await db.from('transactions').update(data).eq('id', id)
+      error = res.error
+      if (!error) {
+        const idx = G.transactions.findIndex(t => t.id == id)
+        if (idx >= 0) G.transactions[idx] = {...G.transactions[idx], ...data, id:+id}
+      }
+    } else {
+      const res = await db.from('transactions').insert(data).select().single()
+      error = res.error
+      if (!error && res.data) { G.transactions.unshift(res.data); G.transactions.sort(txSort) }
+    }
+    showLoading(false)
+
+    if (error) { toast('บันทึกล้มเหลว: ' + (error.message || JSON.stringify(error)), 'err'); return }
+    applyTxFilters()
+    populateTxFilters()
+    if (id) {
+      closeTxModal()
+      toast('✓ แก้ไขรายการแล้ว')
+    } else {
+      $('tx-sub').value    = ''
+      $('tx-amount').value = ''
+      $('tx-sub').focus()
+      toast('✓ เพิ่มรายการแล้ว')
+    }
+  } catch (err) {
+    showLoading(false)
+    console.error('[saveTx]', err)
+    toast('เกิดข้อผิดพลาด: ' + err.message, 'err')
+  }
 }
 
 async function deleteTx(id) {
@@ -1437,8 +1480,74 @@ async function deleteTx(id) {
   showLoading(false)
   if (error) { toast('ลบล้มเหลว', 'err'); return }
   G.transactions = G.transactions.filter(t => t.id !== id)
+  G.txSelected.delete(id)
   applyTxFilters()
   toast('🗑️ ลบรายการแล้ว')
+}
+
+// ── BULK SELECT / DELETE ────────────────────────────────────────────────
+function toggleTxSelect(id, checked) {
+  if (checked) G.txSelected.add(id); else G.txSelected.delete(id)
+  const tr = document.querySelector(`input.tx-check[onchange="toggleTxSelect(${id},this.checked)"]`)?.closest('tr')
+  if (tr) tr.classList.toggle('tx-sel-row', checked)
+  const pageIds     = G.txFiltered.slice((G.txPage-1)*TX_PER_PAGE, G.txPage*TX_PER_PAGE).map(t => t.id)
+  const allChecked  = pageIds.length > 0 && pageIds.every(i => G.txSelected.has(i))
+  const someChecked = pageIds.some(i => G.txSelected.has(i))
+  const chkAll = $('tx-check-all')
+  if (chkAll) { chkAll.checked = allChecked; chkAll.indeterminate = !allChecked && someChecked }
+  updateTxBulkBar()
+}
+
+function toggleSelectAll(el) {
+  const pageIds = G.txFiltered.slice((G.txPage-1)*TX_PER_PAGE, G.txPage*TX_PER_PAGE).map(t => t.id)
+  if (el.checked) pageIds.forEach(id => G.txSelected.add(id))
+  else pageIds.forEach(id => G.txSelected.delete(id))
+  renderTxTable()
+}
+
+function clearTxSelection() {
+  G.txSelected = new Set()
+  renderTxTable()
+}
+
+function updateTxBulkBar() {
+  const n   = G.txSelected.size
+  const bar = $('tx-bulk-bar')
+  if (!bar) return
+  if (n > 0) {
+    bar.innerHTML = `
+      <span style="font-size:12px;color:var(--amber);font-weight:600">☑ เลือก ${n} รายการ</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="clearTxSelection()">✕ ยกเลิก</button>
+        <button class="btn btn-red btn-sm" onclick="confirmDeleteSelected()">🗑️ ลบที่เลือก (${n})</button>
+      </div>`
+    bar.classList.remove('hidden')
+  } else {
+    bar.classList.add('hidden')
+  }
+}
+
+function confirmDeleteSelected() {
+  const n = G.txSelected.size
+  $('confirm-msg').textContent    = `ต้องการลบ ${n} รายการที่เลือก?`
+  $('confirm-detail').textContent = 'รายการเหล่านี้จะถูกลบถาวร ไม่สามารถกู้คืนได้'
+  _confirmCb = () => { bulkDeleteSelected(); closeConfirm() }
+  $('confirm-ok-btn').onclick = _confirmCb
+  show('overlay-confirm')
+}
+
+async function bulkDeleteSelected() {
+  const ids = [...G.txSelected]
+  if (!ids.length) return
+  showLoading(true)
+  const { error } = await db.from('transactions').delete().in('id', ids)
+  showLoading(false)
+  if (error) { toast('ลบล้มเหลว: ' + error.message, 'err'); return }
+  G.transactions = G.transactions.filter(t => !ids.includes(t.id))
+  G.txSelected   = new Set()
+  applyTxFilters()
+  populateTxFilters()
+  toast(`🗑️ ลบ ${ids.length} รายการแล้ว`)
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -2215,8 +2324,8 @@ function renderDebtSummary() {
   if (multiYear) {
     html += '<tr>'
     html += '<th class="ds-sticky" style="left:0;min-width:160px" rowspan="2">รายการ</th>'
-    html += '<th class="ds-sticky" style="left:160px;min-width:90px" rowspan="2">หมวด</th>'
-    html += '<th class="ds-sticky" style="left:250px;min-width:40px;text-align:center" rowspan="2">เดือน</th>'
+    html += '<th style="min-width:90px" rowspan="2">หมวด</th>'
+    html += '<th style="min-width:40px;text-align:center" rowspan="2">เดือน</th>'
     yearGroups.forEach(yg => {
       html += `<th class="ds-yr-head" colspan="${yg.count}">${yg.year}</th>`
     })
@@ -2231,13 +2340,13 @@ function renderDebtSummary() {
     const y = parseInt(activeYear)
     html += '<tr>'
     html += '<th class="ds-sticky" style="left:0;min-width:160px">รายการ</th>'
-    html += '<th class="ds-sticky" style="left:160px;min-width:90px">หมวด</th>'
-    html += '<th class="ds-sticky" style="left:250px;min-width:40px;text-align:center">เดือน</th>'
+    html += '<th style="min-width:90px">หมวด</th>'
+    html += '<th style="min-width:40px;text-align:center">เดือน</th>'
     html += `<th class="ds-yr-head" colspan="${cols.length}">${y}</th>`
     html += '</tr><tr>'
     html += '<th class="ds-sticky" style="left:0"></th>'
-    html += '<th class="ds-sticky" style="left:160px"></th>'
-    html += '<th class="ds-sticky" style="left:250px"></th>'
+    html += '<th></th>'
+    html += '<th></th>'
     cols.forEach(c => {
       const cls = (c.isCur ? 'ds-cur ' : '') + (isAdmin ? 'ds-month-click' : '')
       const click = isAdmin ? `onclick="toggleMonthStatus('${c.key}')" title="คลิกเพื่อ toggle ทั้งเดือน"` : ''
@@ -2250,7 +2359,7 @@ function renderDebtSummary() {
 
   // hint for admin
   if (isAdmin) {
-    html += `<tr style="background:var(--surface3)"><td colspan="3" class="ds-sticky" style="left:0;font-size:10px;color:var(--text3);padding:5px 10px">
+    html += `<tr style="background:var(--surface3)"><td class="ds-sticky" style="left:0"></td><td colspan="2" style="font-size:10px;color:var(--text3);padding:5px 10px">
       💡 คลิกที่ยอดเงินเพื่อสลับสถานะ จ่ายแล้ว / ค้างอยู่</td>
       ${cols.map(() => '<td></td>').join('')}</tr>`
   }
@@ -2264,8 +2373,8 @@ function renderDebtSummary() {
     html += `<td class="ds-sticky ds-name" style="left:0">${escHtml(r.name)}`
     if (r.who) html += `<span class="ds-who-badge ${whoClass}">${escHtml(r.who)}</span>`
     html += '</td>'
-    html += `<td class="ds-sticky ds-ch" style="left:160px">${escHtml(r.category)}</td>`
-    html += `<td class="ds-sticky ds-mo" style="left:250px">${activeCount}</td>`
+    html += `<td class="ds-ch">${escHtml(r.category)}</td>`
+    html += `<td class="ds-mo">${activeCount}</td>`
     cols.forEach(c => {
       const val = r.months[c.key] || 0
       if (val) {
@@ -2284,8 +2393,8 @@ function renderDebtSummary() {
   // footer: จ่ายแล้ว
   html += '<tr class="ds-foot-paid">'
   html += '<td class="ds-sticky ds-name" style="left:0;color:var(--green)">✓ จ่ายแล้ว</td>'
-  html += '<td class="ds-sticky" style="left:160px"></td>'
-  html += '<td class="ds-sticky" style="left:250px"></td>'
+  html += '<td></td>'
+  html += '<td></td>'
   cols.forEach(c => {
     const v = paidTotals[c.key]
     html += `<td class="ds-amt${c.isCur?' ds-cur':''}" style="color:var(--green)">${v > 0 ? fmt(v) : ''}</td>`
@@ -2295,8 +2404,8 @@ function renderDebtSummary() {
   // footer: ค้างอยู่
   html += '<tr class="ds-foot-pend">'
   html += '<td class="ds-sticky ds-name" style="left:0;color:var(--amber)">⏳ ค้างอยู่</td>'
-  html += '<td class="ds-sticky" style="left:160px"></td>'
-  html += '<td class="ds-sticky" style="left:250px"></td>'
+  html += '<td></td>'
+  html += '<td></td>'
   cols.forEach(c => {
     const v = pendTotals[c.key]
     html += `<td class="ds-amt${c.isCur?' ds-cur':''}" style="color:var(--amber)">${v > 0 ? fmt(v) : ''}</td>`
@@ -2306,8 +2415,8 @@ function renderDebtSummary() {
   // total row
   html += '<tr class="ds-total-row">'
   html += '<td class="ds-sticky ds-name" style="left:0;font-weight:800">รวมทั้งหมด</td>'
-  html += '<td class="ds-sticky" style="left:160px"></td>'
-  html += '<td class="ds-sticky" style="left:250px"></td>'
+  html += '<td></td>'
+  html += '<td></td>'
   cols.forEach(c => {
     const val = totals[c.key]
     html += `<td class="ds-amt${c.isCur ? ' ds-cur' : ''}">${val > 0 ? fmt(val) : ''}</td>`
