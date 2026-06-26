@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ── GLOBAL HIDDEN ──────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
@@ -581,6 +582,8 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
             <option value="รายรับ">รายรับ</option>
             <option value="ALL">ทั้งหมด</option>
           </select>
+          <button class="btn btn-ghost btn-sm" id="ds-hide-past-btn" onclick="toggleDsHidePast()" title="ซ่อน/แสดงเดือนที่ผ่านมา">⏭ ดูข้างหน้า</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportDebtSummaryExcel()" title="Export ตารางเป็น Excel">📥 Excel</button>
         </div>
       </div>
       <div id="ds-content"></div>
@@ -841,6 +844,8 @@ let G = {
   user: null, profile: null,
   transactions: [], debtPlans: [],
   txFiltered: [], txPage: 1, txSelected: new Set(),
+  dsHidePast: false,
+  dsLastCols: [], dsLastRows: [],
   monthlyCollapsed: {},
   monthlyInitDone: false,
   page: 'dashboard',
@@ -2207,6 +2212,86 @@ if (loginEmail) loginEmail.addEventListener('keydown', e => { if (e.key === 'Ent
 // ════════════════════════════════════════════════════════════════════════
 // EXPENSE SUMMARY TABLE (pivot: sub_category × month)
 // ════════════════════════════════════════════════════════════════════════
+function toggleDsHidePast() {
+  G.dsHidePast = !G.dsHidePast
+  const btn = $('ds-hide-past-btn')
+  if (btn) {
+    btn.classList.toggle('btn-amber', G.dsHidePast)
+    btn.classList.toggle('btn-ghost', !G.dsHidePast)
+    btn.textContent = G.dsHidePast ? '📅 แสดงทั้งหมด' : '⏭ ดูข้างหน้า'
+  }
+  renderDebtSummary()
+}
+
+function exportDebtSummaryExcel() {
+  if (typeof XLSX === 'undefined') { toast('ยังโหลด SheetJS ไม่เสร็จ กรุณารอสักครู่', 'err'); return }
+  const cols = G.dsLastCols
+  const rows = G.dsLastRows
+  if (!cols || !rows || !cols.length) { toast('ไม่มีข้อมูลสำหรับ Export', 'err'); return }
+
+  const multiYear = cols.some(c => c.key !== c.label)
+  const wsData = []
+
+  // ─── header ────────────────────────────────────────────────────────────
+  const header = ['รายการ', 'หมวด', 'งวด (เดือน)']
+  cols.forEach(c => header.push(multiYear ? `${c.label} ${c.year}` : c.label))
+  wsData.push(header)
+
+  // ─── data rows ─────────────────────────────────────────────────────────
+  rows.forEach(r => {
+    const activeCount = cols.filter(c => (r.months[c.key] || 0) > 0).length
+    const row = [
+      r.name + (r.who ? ` (${r.who})` : ''),
+      r.category,
+      activeCount,
+    ]
+    cols.forEach(c => row.push(r.months[c.key] || ''))
+    wsData.push(row)
+  })
+
+  // ─── footer totals ──────────────────────────────────────────────────────
+  const totals = {}, paidTotals = {}, pendTotals = {}
+  cols.forEach(c => { totals[c.key] = 0; paidTotals[c.key] = 0; pendTotals[c.key] = 0 })
+  rows.forEach(r => {
+    cols.forEach(c => {
+      const v = r.months[c.key] || 0
+      totals[c.key] += v
+      if (v) {
+        if (r.paid[c.key]) paidTotals[c.key] += v
+        else               pendTotals[c.key] += v
+      }
+    })
+  })
+
+  const paidRow  = ['✓ จ่ายแล้ว', '', '']
+  const pendRow  = ['⏳ ค้างอยู่', '', '']
+  const totalRow = ['รวมทั้งหมด', '', '']
+  cols.forEach(c => {
+    paidRow.push(paidTotals[c.key] || '')
+    pendRow.push(pendTotals[c.key] || '')
+    totalRow.push(totals[c.key] || '')
+  })
+  wsData.push([], paidRow, pendRow, totalRow)  // blank row before totals
+
+  // ─── build workbook ─────────────────────────────────────────────────────
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet(wsData)
+
+  // column widths
+  ws['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 12 }]
+  cols.forEach(() => ws['!cols'].push({ wch: 11 }))
+
+  // freeze first row + first column
+  ws['!freeze'] = { xSplit: 1, ySplit: 1, topLeftCell: 'B2', activeCell: 'B2', sqref: 'B2' }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'ตารางค่าใช้จ่าย')
+
+  const now = new Date()
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`
+  XLSX.writeFile(wb, `ตารางค่าใช้จ่าย_${dateStr}.xlsx`)
+  toast('✓ Export Excel สำเร็จ')
+}
+
 function renderDebtSummary() {
   const now       = new Date()
   const curYear   = now.getFullYear()
@@ -2282,10 +2367,34 @@ function renderDebtSummary() {
       : pivot[rowKey].paid[colKey] && thisPaid
   })
 
-  // sort rows: by category then sub_category
-  const rows = Object.values(pivot).sort((a,b) =>
-    a.category.localeCompare(b.category, 'th') || a.name.localeCompare(b.name, 'th')
-  )
+  // sort rows: หมดก่อน (last active column) ขึ้นบน → ถ้าเท่ากันให้เรียง category → name
+  const lastActiveIdx = r => {
+    let last = -1
+    cols.forEach((c, i) => { if (r.months[c.key] > 0) last = i })
+    return last
+  }
+  let rows = Object.values(pivot).sort((a, b) => {
+    const diff = lastActiveIdx(a) - lastActiveIdx(b)
+    if (diff !== 0) return diff
+    return a.category.localeCompare(b.category, 'th') || a.name.localeCompare(b.name, 'th')
+  })
+
+  // ── hide-past filter ──────────────────────────────────────────────────
+  if (G.dsHidePast) {
+    const curColNum = curYear * 12 + MONTHS.indexOf(curMonth)
+    cols = cols.filter(c => c.year * 12 + MONTHS.indexOf(c.label) > curColNum)
+    rows = rows.filter(r => cols.some(c => (r.months[c.key] || 0) > 0))
+  }
+
+  if (!cols.length) {
+    G.dsLastCols = []; G.dsLastRows = []
+    $('ds-content').innerHTML = '<div class="empty"><div class="empty-ico">✅</div><div class="empty-msg">ไม่มีรายการที่ยังค้างอยู่ในอนาคต</div></div>'
+    return
+  }
+
+  // cache for Excel export
+  G.dsLastCols = cols
+  G.dsLastRows = rows
 
   // totals per column (total / paid / pending)
   const totals = {}, paidTotals = {}, pendTotals = {}
