@@ -436,7 +436,6 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 
     <div class="rail-section">ภาพรวม</div>
     <div class="nav-link on" data-nav="dashboard" onclick="go('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
-    <div class="nav-link" data-nav="monthly" onclick="go('monthly')"><span class="nav-ico">📅</span>สรุปรายเดือน</div>
 
     <div class="rail-section">รายการ</div>
     <div class="nav-link" data-nav="transactions" onclick="go('transactions')"><span class="nav-ico">📋</span>รายการทั้งหมด</div>
@@ -575,7 +574,8 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
       <div class="page-header">
         <div><div class="page-title">📆 ตารางค่าใช้จ่ายรายเดือน</div><div class="page-sub" id="ds-sub">สรุปรายการทั้งหมดแยกตามเดือน</div></div>
         <div class="toolbar">
-          <select class="fsel" id="ds-year" onchange="renderDebtSummary()"><option value="ALL">ทุกปี</option></select>
+          <select class="fsel" id="ds-year-start" onchange="renderDebtSummary('start')" title="ปีเริ่มต้น"><option>2026</option></select>
+          <select class="fsel" id="ds-year-end" onchange="renderDebtSummary('end')" title="ปีสิ้นสุด"><option>2026</option></select>
           <select class="fsel" id="ds-who" onchange="renderDebtSummary()"><option value="ALL">ทุกคน</option></select>
           <select class="fsel" id="ds-type" onchange="renderDebtSummary()">
             <option value="รายจ่าย">รายจ่าย</option>
@@ -846,6 +846,7 @@ let G = {
   txFiltered: [], txPage: 1, txSelected: new Set(),
   dsHidePast: false,
   dsLastCols: [], dsLastRows: [],
+  debtBackfillDone: false,
   monthlyCollapsed: {},
   monthlyInitDone: false,
   page: 'dashboard',
@@ -965,6 +966,8 @@ async function enterApp() {
   if (G.profile.role === 'admin') $('nav-admin').style.display = ''
   applyRoleUI()
   await loadAll()
+  await repairDuplicateDebtTransactions()
+  await backfillMissingDebtPlanTransactions()
   populateDashFilters()
   populateTxFilters()
   populateDebtFilters()
@@ -977,20 +980,35 @@ async function enterApp() {
 async function loadAll() {
   showLoading(true)
   try {
-    const [txRes, dpRes] = await Promise.all([
-      db.from('transactions').select('*').order('year', {ascending:false}),
-      db.from('debt_plans').select('*').order('created_at', {ascending:false})
+    const [txRows, dpRows] = await Promise.all([
+      fetchAllRows('transactions', q => q.order('year', {ascending:false}).order('id', {ascending:false})),
+      fetchAllRows('debt_plans', q => q.order('created_at', {ascending:false}))
     ])
-    if (txRes.error) toast('โหลด transactions ล้มเหลว', 'err')
-    else G.transactions = (txRes.data || []).sort(txSort)
-    if (dpRes.error) toast('โหลด debt plans ล้มเหลว', 'err')
-    else G.debtPlans = dpRes.data || []
+    G.transactions = txRows.sort(txSort)
+    G.debtPlans = dpRows
   } catch (err) {
     console.error('[loadAll error]', err)
     toast('โหลดข้อมูลล้มเหลว', 'err')
   } finally {
     showLoading(false)
   }
+}
+
+async function fetchAllRows(table, applyQuery = q => q) {
+  const pageSize = 1000
+  let from = 0
+  let rows = []
+
+  while (true) {
+    const query = applyQuery(db.from(table).select('*')).range(from, from + pageSize - 1)
+    const { data, error } = await query
+    if (error) throw error
+    rows = rows.concat(data || [])
+    if (!data || data.length < pageSize) break
+    from += pageSize
+  }
+
+  return rows
 }
 
 const txSort = (a, b) =>
@@ -1950,6 +1968,102 @@ async function syncDebtPlanTransactions(plan, isNew) {
   return error || null
 }
 
+async function repairDuplicateDebtTransactions() {
+  if (G.profile?.role !== 'admin') return 0
+
+  const groups = {}
+  G.transactions
+    .filter(t => t.debt_plan_id)
+    .forEach(t => {
+      const key = `${t.debt_plan_id}|${t.year}|${t.month}`
+      if (!groups[key]) groups[key] = []
+      groups[key].push(t)
+    })
+
+  const deleteIds = []
+  Object.values(groups).forEach(items => {
+    if (items.length <= 1) return
+
+    items.sort((a, b) => {
+      const paidDiff = (b.status ? 1 : 0) - (a.status ? 1 : 0)
+      return paidDiff || a.id - b.id
+    })
+    const keep = items[0]
+    items.slice(1).forEach(t => deleteIds.push(t.id))
+
+    const paidStatus = items.find(t => t.status)?.status || ''
+    if (paidStatus && keep.status !== paidStatus) keep.status = paidStatus
+  })
+
+  if (!deleteIds.length) return 0
+
+  for (let i = 0; i < deleteIds.length; i += 200) {
+    const batch = deleteIds.slice(i, i + 200)
+    const { error } = await db.from('transactions').delete().in('id', batch)
+    if (error) {
+      console.error('[repairDuplicateDebtTransactions error]', error)
+      toast('ลบรายการผ่อนที่ซ้ำไม่สำเร็จ: ' + error.message, 'err')
+      return 0
+    }
+  }
+
+  toast(`ลบรายการผ่อนที่ซ้ำแล้ว ${deleteIds.length} รายการ`)
+  await loadAll()
+  return deleteIds.length
+}
+
+async function backfillMissingDebtPlanTransactions() {
+  if (G.debtBackfillDone || G.profile?.role !== 'admin' || !G.debtPlans.length) return 0
+  G.debtBackfillDone = true
+
+  const linked = G.transactions.filter(t => t.debt_plan_id)
+  const existing = new Set(linked.map(t => `${t.debt_plan_id}|${t.year}|${t.month}`))
+  const missing = []
+
+  G.debtPlans.forEach(plan => {
+    const si = MONTHS.indexOf(plan.start_month)
+    if (si < 0 || !plan.id || !plan.total_months) return
+
+    for (let i = 0; i < plan.total_months; i++) {
+      const month = MONTHS[(si + i) % 12]
+      const year  = plan.start_year + Math.floor((si + i) / 12)
+      const key   = `${plan.id}|${year}|${month}`
+      if (existing.has(key)) continue
+
+      const amount = (plan.monthly_amounts && plan.monthly_amounts[i] != null)
+        ? +plan.monthly_amounts[i]
+        : +plan.monthly_amount
+
+      missing.push({
+        user_id:      plan.user_id,
+        year,
+        month,
+        category:     plan.category,
+        sub_category: plan.name,
+        type:         'รายจ่าย',
+        amount,
+        who:          plan.who,
+        status:       '',
+        debt_plan_id: plan.id,
+        notes:        null
+      })
+    }
+  })
+
+  if (!missing.length) return 0
+
+  const { error } = await db.from('transactions').insert(missing)
+  if (error) {
+    console.error('[backfillMissingDebtPlanTransactions error]', error)
+    toast('ซ่อมรายการผ่อนที่ขาดไม่สำเร็จ: ' + error.message, 'err')
+    return 0
+  }
+
+  toast(`เติมรายการผ่อนที่ขาดแล้ว ${missing.length} รายการ`)
+  await loadAll()
+  return missing.length
+}
+
 async function deleteDebt(id) {
   showLoading(true)
   // delete linked transactions first (preserve payment history is optional; here we remove all)
@@ -2292,30 +2406,50 @@ function exportDebtSummaryExcel() {
   toast('✓ Export Excel สำเร็จ')
 }
 
-function renderDebtSummary() {
+function populateDebtSummaryYearRange(years, curYear, changed) {
+  const sorted = [...new Set([...years, curYear])].sort((a, b) => a - b)
+  const startEl = $('ds-year-start')
+  const endEl = $('ds-year-end')
+  const prevStart = startEl.value
+  const prevEnd = endEl.value
+
+  startEl.innerHTML = sorted.map(y => `<option value="${y}">${y}</option>`).join('')
+  endEl.innerHTML = sorted.map(y => `<option value="${y}">${y}</option>`).join('')
+
+  startEl.value = sorted.includes(+prevStart) ? prevStart : String(curYear)
+  endEl.value = sorted.includes(+prevEnd) ? prevEnd : String(curYear)
+
+  if (+startEl.value > +endEl.value) {
+    if (changed === 'start') endEl.value = startEl.value
+    else startEl.value = endEl.value
+  }
+
+  return { startYear: +startEl.value, endYear: +endEl.value }
+}
+
+function renderDebtSummary(changed) {
+  if (!G.debtBackfillDone && G.profile?.role === 'admin') {
+    backfillMissingDebtPlanTransactions().then(count => {
+      if (count && G.page === 'debt-summary') renderDebtSummary()
+    })
+  }
+
   const now       = new Date()
   const curYear   = now.getFullYear()
   const curMonth  = MONTHS[now.getMonth()]
 
-  // populate year + who filters (preserve selection)
-  const years = [...new Set(G.transactions.map(t => t.year))].sort((a,b) => b-a)
-  populateSelect('ds-year', years.map(String), 'ทุกปี')
+  // populate year range + who filters (preserve selection)
+  const years = [...new Set(G.transactions.map(t => +t.year).filter(Boolean))]
+  const { startYear, endYear } = populateDebtSummaryYearRange(years, curYear, changed)
   const whos = [...new Set(G.transactions.map(t => t.who))].sort()
   populateSelect('ds-who', whos, 'ทุกคน')
 
-  const yearFilter = $('ds-year').value
   const whoFilter  = $('ds-who').value
   const typeFilter = $('ds-type').value
 
-  // default year to current year on first load
-  if ($('ds-year').value === 'ALL' && years.includes(curYear)) {
-    $('ds-year').value = String(curYear)
-  }
-  const activeYear = $('ds-year').value
-
   // filter transactions
   let txs = G.transactions
-  if (activeYear !== 'ALL') txs = txs.filter(t => t.year == activeYear)
+  txs = txs.filter(t => +t.year >= startYear && +t.year <= endYear)
   if (whoFilter  !== 'ALL') txs = txs.filter(t => t.who  === whoFilter)
   if (typeFilter !== 'ALL') txs = txs.filter(t => t.type === typeFilter)
 
@@ -2326,16 +2460,14 @@ function renderDebtSummary() {
 
   // build columns: all 12 months if single year, else full range
   let cols   // [{label, yearLabel, isCur}]
-  let multiYear = false
-  if (activeYear !== 'ALL') {
-    const y = parseInt(activeYear)
+  const multiYear = startYear !== endYear
+  if (!multiYear) {
+    const y = startYear
     cols = MONTHS.map(m => ({ key: m, label: m, year: y, isCur: y === curYear && m === curMonth }))
   } else {
-    multiYear = true
-    const toIdx = (y, m) => y * 12 + MONTHS.indexOf(m)
     const fromIdx = i => ({ year: Math.floor(i / 12), month: MONTHS[i % 12] })
-    const minIdx = Math.min(...txs.map(t => toIdx(t.year, t.month)))
-    const maxIdx = Math.max(...txs.map(t => toIdx(t.year, t.month)))
+    const minIdx = startYear * 12
+    const maxIdx = endYear * 12 + 11
     cols = []
     for (let i = minIdx; i <= maxIdx; i++) {
       const { year, month } = fromIdx(i)
@@ -2446,7 +2578,7 @@ function renderDebtSummary() {
     })
     html += '</tr>'
   } else {
-    const y = parseInt(activeYear)
+    const y = startYear
     html += '<tr>'
     html += '<th class="ds-sticky" style="left:0;min-width:160px">รายการ</th>'
     html += '<th style="min-width:90px">หมวด</th>'
@@ -2552,12 +2684,13 @@ async function toggleCellStatus(txIdsStr, allPaid) {
 
 async function toggleMonthStatus(colKey) {
   if (G.profile?.role !== 'admin') return
-  const activeYear = $('ds-year').value
+  const startYear = +$('ds-year-start').value
+  const endYear   = +$('ds-year-end').value
   const whoFilter  = $('ds-who').value
   const typeFilter = $('ds-type').value
-  const multiYear  = activeYear === 'ALL'
+  const multiYear  = startYear !== endYear
   let txs = G.transactions
-  if (activeYear !== 'ALL') txs = txs.filter(t => t.year == activeYear)
+  txs = txs.filter(t => +t.year >= startYear && +t.year <= endYear)
   if (whoFilter  !== 'ALL') txs = txs.filter(t => t.who  === whoFilter)
   if (typeFilter !== 'ALL') txs = txs.filter(t => t.type === typeFilter)
   const colTxs = txs.filter(t => (multiYear ? `${t.year}-${t.month}` : String(t.month)) === String(colKey))
