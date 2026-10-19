@@ -14,29 +14,29 @@
 
 /* ── TOKENS ───────────────────────────────────────────────────────────── */
 :root {
-  --bg:        #0c0e14;
-  --surface:   #12151f;
-  --surface2:  #181c28;
-  --surface3:  #1f2436;
-  --line:      #252d42;
-  --line2:     #1c2235;
-  --blue:      #3d8ef0;
-  --blue-dim:  rgba(61,142,240,.13);
-  --green:     #34d17a;
-  --green-dim: rgba(52,209,122,.13);
-  --red:       #f0524a;
-  --red-dim:   rgba(240,82,74,.13);
-  --amber:     #f0b432;
-  --amber-dim: rgba(240,180,50,.12);
-  --purple:    #9b6cf0;
-  --text:      #dde2f0;
-  --text2:     #7a86a8;
-  --text3:     #424d6b;
+  --bg:        #f5f7fb;
+  --surface:   #ffffff;
+  --surface2:  #f3f6fa;
+  --surface3:  #eaf0f6;
+  --line:      #e2e8f0;
+  --line2:     #edf1f6;
+  --blue:      #1677d2;
+  --blue-dim:  rgba(22,119,210,.10);
+  --green:     #15956a;
+  --green-dim: rgba(21,149,106,.11);
+  --red:       #e34943;
+  --red-dim:   rgba(227,73,67,.10);
+  --amber:     #d98a12;
+  --amber-dim: rgba(217,138,18,.12);
+  --purple:    #8055d5;
+  --text:      #17233d;
+  --text2:     #60718d;
+  --text3:     #8b99ad;
   --mono:      'IBM Plex Mono', monospace;
   --sans:      'Noto Sans Thai', sans-serif;
-  --r:         12px;
-  --r2:        8px;
-  --r3:        6px;
+  --r:         14px;
+  --r2:        10px;
+  --r3:        8px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -333,6 +333,246 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 }
 .hamburger{display:none;position:fixed;top:12px;left:12px;z-index:200;width:36px;height:36px;background:var(--surface);border:1px solid var(--line);border-radius:8px;align-items:center;justify-content:center;cursor:pointer;font-size:18px}
 @media(max-width:700px){.hamburger{display:flex}}
+
+/* ── LIGHT FINANCE UI ──────────────────────────────────────────────────── */
+body{background:var(--bg);color:var(--text)}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#cbd5e1}
+.main{max-width:none;padding:30px 32px 42px}
+.rail{width:260px;background:#fff;border-right:1px solid var(--line);box-shadow:4px 0 18px rgba(24,39,75,.025)}
+.main{margin-left:260px}
+.brand{padding:22px 20px 18px}
+.brand-mark{width:40px;height:40px;background:linear-gradient(145deg,#31b579,#07875e);border-radius:12px;box-shadow:0 5px 14px rgba(21,149,106,.16)}
+.brand-text{font-size:16px;color:var(--text)}
+.brand-sub{color:var(--text3);font-family:var(--sans);font-size:11px}
+.rail-section{padding:18px 18px 6px;color:#98a5b7;font-size:10px;letter-spacing:.08em}
+.nav-link{gap:11px;padding:10px 13px;margin:2px 10px;border-radius:10px;color:#596b86;font-size:14px}
+.nav-link:hover{background:#f4f8f6;color:#167d5d}
+.nav-link.on{background:#e9f6ef;color:#108257;font-weight:700}
+.nav-ico{font-size:16px;width:19px}
+.rail-foot{padding:16px;border-top:1px solid var(--line)}
+.rail-user{color:var(--text);font-size:13px}
+.rail-role{color:var(--text3);font-family:var(--sans);font-size:11px}
+.rail-section{display:none}
+.rail .nav-link{margin-top:5px;margin-bottom:5px}
+.brand+.nav-link{margin-top:14px}
+.nav-ico{display:grid;place-items:center;color:#61728d}
+.nav-link.on .nav-ico{color:#12865c}
+.nav-ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rail-profile{display:flex;align-items:center;gap:11px;margin-bottom:13px;min-width:0}
+.rail-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#31b579,#07875e);color:#fff;font-size:15px;font-weight:700;flex-shrink:0}
+.rail-profile-copy{min-width:0}
+.rail-profile-copy .rail-user{max-width:155px}
+.rail-profile-copy .rail-role{margin:2px 0 0}
+.rail-logout{width:100%;justify-content:flex-start!important;padding:9px 12px!important}
+.page-header{align-items:center;margin-bottom:22px}
+.page-title{font-size:25px;line-height:1.3;letter-spacing:-.55px;color:#15223d}
+.page-sub{font-family:var(--sans);font-size:13px;color:#8290a6;margin-top:5px}
+.toolbar{gap:8px}
+.btn{border-radius:10px;padding:9px 15px}
+.btn-blue{background:#13956a;color:#fff;box-shadow:0 3px 9px rgba(19,149,106,.12)}
+.btn-blue:hover,.btn-green:hover{filter:brightness(1.04);box-shadow:0 4px 13px rgba(19,149,106,.18)}
+.btn-green{background:#13956a;color:#fff}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:#536782}
+.btn-ghost:hover{border-color:#a8d9c2;color:#12855d;background:#f8fcf9}
+.btn-red{background:#fff;border-color:#f4c5c2;color:var(--red)}
+.btn-red:hover{background:#fff5f4}
+.fi,.fs,.fta,.fsel,.fsearch{background:#fff;color:var(--text);border-color:#dce4ee;border-radius:10px}
+.fi:focus,.fs:focus,.fta:focus,.fsel:focus,.fsearch:focus{border-color:#55b58b;box-shadow:0 0 0 3px rgba(21,149,106,.10)}
+.fi[readonly]{background:var(--surface2)}
+.flabel{color:#74839a}
+.fhint,.fhint.amber{color:#8795a9}
+.filters{padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:16px;gap:9px}
+.fsel{padding:9px 12px;font-size:13px}
+.fsearch{padding:9px 12px;font-size:13px;min-width:210px}
+.kpi-grid{gap:14px;margin-bottom:20px}
+.kpi{min-height:126px;background:#fff;border:1px solid #e7edf3;border-radius:14px;padding:20px;box-shadow:0 5px 20px rgba(27,50,83,.035)}
+.kpi::after{display:none}
+.kpi-label{font-family:var(--sans);font-size:13px;letter-spacing:0;text-transform:none;color:#70809a;font-weight:600;margin-bottom:5px}
+.kpi-val{font-family:var(--sans);font-size:25px;letter-spacing:-.5px;line-height:1.3}
+.kpi-sub{font-size:12px;color:#8795a9;margin-top:4px}
+.kpi-inc .kpi-val,.c-green{color:#11895e}
+.kpi-exp .kpi-val,.c-red{color:#e34943}
+.kpi-bal .kpi-val,.c-blue{color:#1677d2}
+.kpi-bal .kpi-val.c-green{color:#11895e}
+.kpi-bal .kpi-val.c-red{color:#e34943}
+.c-amber{color:#d98a12}
+.c-purple{color:#8055d5}
+.card,.tbox,.ds-wrap,.debt-card{background:#fff;border-color:#e4eaf1;border-radius:14px;box-shadow:0 5px 20px rgba(27,50,83,.035)}
+.card{padding:20px}
+.card-title{font-family:var(--sans);font-size:16px;letter-spacing:-.1px;text-transform:none;color:#182541;font-weight:750;margin-bottom:14px}
+.grid2{gap:16px}
+.bar-lbl{color:#586b87;font-family:var(--sans);font-size:13px}
+.bar-track,.debt-progress-track{background:#e9eef4}
+.bar-val{font-family:var(--sans);font-size:12px;color:#253551}
+.month-chart{height:auto;display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;padding:10px 0 0;overflow-x:auto}
+.chart-axis{height:226px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;padding:0 8px 22px 0;color:#8795a9;font-size:11px;white-space:nowrap}
+.chart-plot{height:226px;display:grid;grid-template-columns:repeat(12,minmax(24px,1fr));align-items:stretch;border-bottom:1px solid #dfe6ed;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(25% - 1px),#edf1f5 calc(25% - 1px),#edf1f5 25%);overflow:hidden}
+.chart-plot .mc-col{height:100%;min-width:0;justify-content:flex-end;gap:7px}
+.chart-plot .mc-bars{width:100%;height:188px;justify-content:center;gap:0;align-items:flex-end}
+.chart-plot .mc-lbl{height:20px;font-size:11px;color:#72819a}
+.mc-bar{width:22px!important;border-radius:5px 5px 0 0}
+.mc-lbl{font-size:11px;color:#72819a}
+.tbox{overflow:hidden;margin-bottom:18px}
+.tbox-head{padding:14px 18px;border-bottom:1px solid #e9eef4;background:#fff}
+.tbox-title{font-family:var(--sans);font-size:15px;letter-spacing:0;text-transform:none;color:#1c2a45;font-weight:700}
+.tcount{background:#eff3f8;color:#75849a;font-family:var(--sans);font-size:11px}
+.tscroll{overscroll-behavior-x:contain}
+thead th{padding:12px 14px;background:#f4f7fa;color:#73829a;font-family:var(--sans);font-size:11px;letter-spacing:.035em;text-transform:none;border-bottom:1px solid #e8edf3}
+tbody tr{border-bottom:1px solid #edf1f5}
+tbody tr:hover{background:#f8fbfa}
+tbody td{padding:12px 14px;font-size:13px;color:#23324c}
+tfoot td{background:#f4f8f5;border-top:1px solid #e4eee8}
+.tag{padding:4px 10px;font-size:11px}
+.tag-inc,.tag-paid,.tag-approved{background:#e8f7ef;color:#13885f}
+.tag-exp{background:#fff0ef;color:#dd4c45}
+.tag-pend,.tag-waiting{background:#fff4df;color:#bf790b}
+.tag-recv{background:#eaf3ff;color:#2877c9}
+.tag-admin{background:#f1ebff;color:#7952c7}
+.tag-member{background:#edf3fa;color:#58708e}
+.amt-inc{color:#12885d}
+.amt-exp{color:#df4c45}
+.status-btn:hover{filter:brightness(.96)}
+.debt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.debt-card{padding:20px;transition:transform .18s ease,box-shadow .18s ease}
+.debt-card:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(27,50,83,.08);border-color:#d6e7df}
+.debt-card::before{height:3px}
+.debt-name{font-size:17px;color:#172541}
+.debt-meta{font-family:var(--sans);font-size:12px;color:#7b8aa1}
+.debt-progress-label{font-size:12px;color:#647590}
+.debt-stat{background:#f4f7fa;border-radius:10px;padding:10px 11px}
+.debt-stat-lbl{font-family:var(--sans);font-size:10px;color:#8391a5;letter-spacing:0;text-transform:none}
+.debt-stat-val{font-family:var(--sans);font-size:14px}
+.debt-actions{border-color:#edf1f5}
+.ds-wrap{overflow:auto}
+.ds-table{font-size:12px;min-width:1180px}
+.ds-table th,.ds-table td{padding:12px 11px;border-right:1px solid #edf1f5;border-bottom:1px solid #edf1f5}
+.ds-table thead th{background:#f4f7fa;color:#697b96;font-family:var(--sans);font-size:11px;letter-spacing:0;text-transform:none}
+.ds-table thead th.ds-cur{background:#eaf4ff;color:#2276c8}
+.ds-table .ds-sticky{background:#fff}
+.ds-table thead .ds-sticky{background:#f4f7fa}
+.ds-table tbody tr:hover td{background:#f8fbfa}
+.ds-table tbody tr:hover .ds-sticky{background:#f4f9f6}
+.ds-table .ds-name{font-family:var(--sans);font-size:13px;color:#192744;min-width:190px}
+.ds-table .ds-ch{font-size:12px;color:#506684}
+.ds-table .ds-mo{font-family:var(--sans);font-size:12px}
+.ds-table .ds-amt{min-width:80px;text-align:center;color:#71819a;font-family:var(--sans)}
+.ds-table .ds-amt.ds-active{font-weight:600;color:#33445f}
+.ds-table .ds-amt.ds-cur{color:#1677d2}
+.ds-table .ds-total-row td{background:#eff9f3;border-top:1px solid #dcefe3}
+.ds-table .ds-total-row .ds-amt{color:#14865e}
+.ds-table .ds-total-row .ds-amt.ds-cur{color:#14865e}
+.ds-yr-head{text-align:center;background:#f1f5fa!important;color:#536783!important}
+.ds-who-badge{font-family:var(--sans)}
+.ds-paid{color:#12885d!important;background:#e8f7ef!important}
+.ds-paid.ds-cur{color:#12885d!important;background:#e2f5ea!important}
+.ds-row-paid td{background:#fbfefc}
+.ds-row-pend td{background:#fffdfa}
+.ds-foot-paid td,.ds-foot-pend td{font-family:var(--sans);font-size:12px}
+.ds-month-click:hover{background:#e8f3ff!important}
+.ds-cell-click{cursor:pointer}
+.tx-sel-row td{background:#edf5ff!important}
+.tx-check{accent-color:#15956a}
+.tx-bulk-bar{background:#fff7e8;border-color:#f0dfbd}
+.user-row-pending{background:#fffaf0}
+.modal{background:#fff;border-color:var(--line);box-shadow:0 20px 60px rgba(25,42,70,.18)}
+.overlay{background:rgba(23,35,61,.36);backdrop-filter:blur(4px)}
+.modal-title{color:#17233d}
+.modal-close{border-color:var(--line);color:#74839a}
+.toast{background:#fff;border-color:var(--line);box-shadow:0 16px 48px rgba(28,45,73,.16)}
+.loading-overlay{background:rgba(245,247,251,.72)}
+.auth-wrap{background:radial-gradient(ellipse at 30% 20%,rgba(21,149,106,.08) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(22,119,210,.05) 0%,transparent 60%)}
+.auth-card,.pending-card{background:#fff;border-color:var(--line);box-shadow:0 14px 48px rgba(25,42,70,.08)}
+.auth-logo-mark{background:linear-gradient(145deg,#31b579,#07875e)}
+.auth-logo-sub{font-family:var(--sans);color:#8b99ad}
+.auth-tabs{background:#f1f5f8}
+.auth-tab.on{background:#15956a}
+.auth-msg.err{background:#fff0ef;color:#d94740}
+.auth-msg.ok{background:#e8f7ef;color:#12885d}
+.pending-title{color:#b87910}
+.hamburger{background:#fff;border-color:var(--line);color:var(--text)}
+.empty{color:#8795a9}
+.empty-msg{color:#71819a}
+.dashboard-main-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(390px,.95fr);gap:16px;margin-bottom:18px;align-items:stretch}
+.dashboard-main-grid>.card{min-width:0;min-height:350px}
+.dash-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.dash-card-heading .card-title{margin:0}
+.dash-card-link{font-size:12px;font-weight:700;color:#1677d2;white-space:nowrap}
+.dash-period{margin-left:5px;font-weight:600;color:#71809a}
+.kpi.has-icon{padding:18px 18px 18px 84px;min-height:128px}
+.kpi-icon{position:absolute;left:18px;top:26px;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:23px;background:#e7f6ee;color:#16875f}
+.kpi-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.kpi-exp .kpi-icon{background:#fff0ef;color:#df4d47}
+.kpi-bal .kpi-icon{background:#eaf3ff;color:#287bd0}
+.kpi-pend .kpi-icon{background:#fff4e1;color:#d48a13}
+.kpi-purple .kpi-icon{background:#f1ebff;color:#8055d5}
+.kpi-spark{position:absolute;right:18px;bottom:20px;display:flex;align-items:flex-end;gap:4px;height:40px;opacity:.4}
+.kpi-spark i{display:block;width:6px;border-radius:4px 4px 0 0;background:#25a978}
+.kpi-exp .kpi-spark i{background:#e56c66}
+.kpi-bal .kpi-spark i{background:#69a9eb}
+.kpi-pend .kpi-spark i{background:#e7aa4b}
+.dash-chart-wrap{padding:0 4px}
+.upcoming-list{display:flex;flex-direction:column}
+.upcoming-row{min-height:59px;display:grid;grid-template-columns:40px minmax(90px,1fr) minmax(88px,120px) auto 18px;align-items:center;gap:11px;border-bottom:1px solid #edf1f5;padding:8px 0}
+.upcoming-row:last-child{border-bottom:0}
+.upcoming-icon{width:36px;height:36px;border-radius:10px;background:#edf5ff;color:#287bd0;display:grid;place-items:center;font-size:17px}
+.upcoming-name{font-size:13px;font-weight:700;color:#1b2945;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upcoming-meta{font-size:11px;color:#8593a8;margin-top:2px}
+.upcoming-date{font-size:11px;color:#71809a;border-left:1px solid #e5eaf0;padding-left:12px;white-space:nowrap}
+.upcoming-amount{font-size:14px;font-weight:700;color:#df4943;white-space:nowrap}
+.upcoming-arrow{color:#98a5b8}
+.dashboard-recent{margin-bottom:18px}
+.dashboard-recent .tbox-head{padding:13px 18px}
+.dashboard-recent tbody td{padding:10px 14px}
+.dash-category-card{margin-bottom:18px}
+.dash-category-card .bar-row{margin-bottom:4px}
+.category-chip{display:inline-flex;align-items:center;border-radius:20px;background:#edf4fb;color:#4d698b;padding:4px 10px;font-size:11px;white-space:nowrap}
+.admin-summary-grid{grid-template-columns:repeat(3,1fr)}
+.admin-tools{display:flex;justify-content:space-between;gap:12px;margin:10px 0 14px;align-items:center}
+.admin-tools .fsearch{max-width:420px;flex:1}
+.admin-tools .fsel{min-width:170px}
+.admin-table .tbox-head{display:none}
+.admin-table tbody td{padding:13px 14px}
+.admin-table .tag{font-size:11px}
+@media(max-width:1200px){
+  .main{padding:25px 24px 36px}
+  .dashboard-main-grid{grid-template-columns:minmax(0,1.1fr) minmax(350px,.9fr)}
+  .debt-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1000px){
+  .dashboard-main-grid{grid-template-columns:1fr}
+  .dashboard-main-grid>.card{min-height:0}
+  .admin-summary-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:700px){
+  .rail{width:270px}
+  .main{margin-left:0;padding:62px 14px 24px}
+  .page-header{align-items:flex-start}
+  .page-title{font-size:22px}
+  .toolbar{width:100%}
+  .toolbar .fsel{flex:1;min-width:0}
+  .kpi-grid{gap:9px}
+  .kpi{min-height:112px;padding:14px}
+  .kpi.has-icon{padding:14px 10px 14px 58px}
+  .kpi-icon{left:10px;top:20px;width:38px;height:38px;font-size:17px}
+  .kpi-val{font-size:19px}
+  .kpi-label{font-size:11px}
+  .kpi-sub{font-size:10px}
+  .kpi-spark{display:none}
+  .debt-grid{grid-template-columns:1fr}
+  .dashboard-main-grid{grid-template-columns:1fr;gap:12px}
+  .dashboard-main-grid>.card{padding:15px}
+  .upcoming-row{grid-template-columns:34px minmax(90px,1fr) auto 14px;gap:8px}
+  .upcoming-date{display:none}
+  .admin-summary-grid{grid-template-columns:1fr}
+  .admin-tools{align-items:stretch;flex-direction:column}
+  .admin-tools .fsearch,.admin-tools .fsel{max-width:none;width:100%}
+  .filters{padding:10px}
+  .filters .fsel,.filters .fsearch{flex:1;min-width:calc(50% - 8px)}
+  .card{padding:15px}
+  .chart-axis,.chart-plot{height:206px}
+  .chart-plot .mc-bars{height:168px}
+}
 </style>
 </head>
 <body>
@@ -430,28 +670,22 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
   <!-- RAIL -->
   <aside class="rail" id="rail">
     <div class="brand">
-      <div class="brand-mark">💰</div>
+      <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none"><path d="M5 14.5c0-4.2 3.1-7.3 7.5-7.3 3.8 0 6.5 2.6 6.5 6.2 0 3.4-2.7 5.8-6.3 5.8H9.4A4.4 4.4 0 0 1 5 14.8v-.3Z" fill="#fff" opacity=".95"/><path d="M11.2 10.8c.8-2.5 2.8-4.1 5.8-4.1-.2 2.7-1.7 4.4-4.6 4.8M9 15.2c1.5-1.8 3.4-2.7 5.9-2.7" stroke="#15956a" stroke-width="1.5" stroke-linecap="round"/><path d="M7.2 18.5h10" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg></div>
       <div><div class="brand-text">Finance Tracker</div><div class="brand-sub">SK · Personal</div></div>
     </div>
 
-    <div class="rail-section">ภาพรวม</div>
-    <div class="nav-link on" data-nav="dashboard" onclick="go('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
-
-    <div class="rail-section">รายการ</div>
-    <div class="nav-link" data-nav="transactions" onclick="go('transactions')"><span class="nav-ico">📋</span>รายการทั้งหมด</div>
-
-    <div class="rail-section">หนี้ / ผ่อน</div>
-    <div class="nav-link" data-nav="debts" onclick="go('debts')"><span class="nav-ico">🗂️</span>แผนผ่อนชำระ</div>
-    <div class="nav-link" data-nav="debt-summary" onclick="go('debt-summary')"><span class="nav-ico">📆</span>ตารางค่าใช้จ่าย</div>
+    <div class="nav-link on" data-nav="dashboard" onclick="go('dashboard')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg></span>ภาพรวม</div>
+    <div class="nav-link" data-nav="transactions" onclick="go('transactions')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></span>รายการทั้งหมด</div>
+    <div class="nav-link" data-nav="debts" onclick="go('debts')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>แผนผ่อนชำระ</div>
+    <div class="nav-link" data-nav="debt-summary" onclick="go('debt-summary')"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>ตารางค่าใช้จ่าย</div>
 
     <div class="nav-link" id="nav-admin" data-nav="admin" onclick="go('admin')" style="display:none">
-      <span class="nav-ico">⚙️</span>จัดการผู้ใช้
+      <span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20M9.5 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM16 11a3 3 0 1 0-1.2-5.8M17 14.7a4 4 0 0 1 4 3.8V20"/></svg></span>จัดการผู้ใช้
     </div>
 
     <div class="rail-foot">
-      <div class="rail-user" id="rail-name">—</div>
-      <div class="rail-role" id="rail-role">—</div>
-      <button class="btn btn-ghost btn-xs" style="width:100%;justify-content:center" onclick="doLogout()">ออกจากระบบ</button>
+      <div class="rail-profile"><div class="rail-avatar" id="rail-avatar">A</div><div class="rail-profile-copy"><div class="rail-user" id="rail-name">—</div><div class="rail-role" id="rail-role">—</div></div></div>
+      <button class="btn btn-ghost btn-xs rail-logout" onclick="doLogout()">↪ &nbsp; ออกจากระบบ</button>
     </div>
   </aside>
 
@@ -461,7 +695,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ DASHBOARD ═══════════════════════════════════════════════════ -->
     <div class="page on" id="page-dashboard">
       <div class="page-header">
-        <div><div class="page-title">📊 Dashboard</div><div class="page-sub" id="dash-sub">ภาพรวมทางการเงิน</div></div>
+        <div><div class="page-title">ภาพรวมการเงิน</div><div class="page-sub">สรุปรายรับ รายจ่าย และสถานะการเงินของคุณแบบภาพรวม<span id="dash-period" class="dash-period">· ทั้งหมด</span></div></div>
         <div class="toolbar">
           <select class="fsel" id="d-year" onchange="renderDash()"><option value="ALL">ทุกปี</option></select>
           <select class="fsel" id="d-month" onchange="renderDash()">
@@ -478,17 +712,30 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
           <div class="empty"><div class="empty-ico">📂</div><div class="empty-msg">กำลังโหลดข้อมูล...</div></div>
         </div>
       </div>
-      <div class="grid2">
-        <div class="card"><div class="card-title">รายจ่ายแยกหมวด</div><div id="c-cat"></div></div>
-        <div class="card"><div class="card-title">ยอดหนี้คงค้าง (แผนผ่อน)</div><div id="c-debt"></div></div>
+      <div class="dashboard-main-grid">
+        <div class="card">
+          <div class="dash-card-heading"><div class="card-title">รายจ่ายรายเดือน</div></div>
+          <div class="dash-chart-wrap" id="c-monthly"></div>
+        </div>
+        <div class="card">
+          <div class="dash-card-heading"><div class="card-title">แผนผ่อนชำระที่ใกล้กำหนด</div><a class="dash-card-link" href="#" onclick="go('debts');return false">ทั้งหมด&nbsp; →</a></div>
+          <div id="c-debt"></div>
+        </div>
       </div>
-      <div class="card grid1"><div class="card-title">รายรับ vs รายจ่าย รายเดือน</div><div id="c-monthly"></div></div>
+      <div class="tbox dashboard-recent">
+        <div class="tbox-head"><span class="tbox-title">รายการล่าสุด</span><a class="dash-card-link" href="#" onclick="go('transactions');return false">ดูทั้งหมด&nbsp; →</a></div>
+        <div class="tscroll"><table>
+          <thead><tr><th>วันที่</th><th>รายการ</th><th>หมวดหมู่</th><th style="text-align:right">จำนวนเงิน</th><th>สถานะ</th></tr></thead>
+          <tbody id="dash-recent-body"></tbody>
+        </table></div>
+      </div>
+      <div class="card dash-category-card"><div class="card-title">รายจ่ายแยกหมวด</div><div id="c-cat"></div></div>
     </div>
 
     <!-- ═══ MONTHLY SUMMARY ══════════════════════════════════════════════ -->
     <div class="page" id="page-monthly">
       <div class="page-header">
-        <div><div class="page-title">📅 สรุปรายเดือน</div><div class="page-sub">ภาพรวมแต่ละเดือน</div></div>
+        <div><div class="page-title">สรุปรายเดือน</div><div class="page-sub">ภาพรวมแต่ละเดือน</div></div>
         <div class="toolbar">
           <select class="fsel" id="m-year" onchange="renderMonthly()"><option value="ALL">ทุกปี</option></select>
           <select class="fsel" id="m-month" onchange="renderMonthly()"><option value="ALL">ทุกเดือน</option></select>
@@ -501,7 +748,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ TRANSACTIONS ════════════════════════════════════════════════ -->
     <div class="page" id="page-transactions">
       <div class="page-header">
-        <div><div class="page-title">📋 รายการทั้งหมด</div><div class="page-sub" id="tx-page-sub">—</div></div>
+        <div><div class="page-title">รายการทั้งหมด</div><div class="page-sub" id="tx-page-sub">—</div></div>
         <div class="toolbar">
           <button class="btn btn-ghost" data-role="admin" onclick="triggerImport()" title="นำเข้าข้อมูลจาก CSV">📥 นำเข้า CSV</button>
           <button class="btn btn-blue" data-role="admin" onclick="openTxModal()">＋ เพิ่มรายการ</button>
@@ -553,7 +800,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ DEBT PLANS ═══════════════════════════════════════════════════ -->
     <div class="page" id="page-debts">
       <div class="page-header">
-        <div><div class="page-title">🗂️ แผนผ่อนชำระ</div><div class="page-sub">ติดตามหนี้ผ่อนทุกรายการ</div></div>
+        <div><div class="page-title">แผนผ่อนชำระ</div><div class="page-sub">ติดตามแผนผ่อนชำระทุกรายการ</div></div>
         <button class="btn btn-blue" data-role="admin" onclick="openDebtModal()">＋ เพิ่มแผนผ่อน</button>
       </div>
       <div class="kpi-grid" id="debt-kpi"></div>
@@ -572,7 +819,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ DEBT SUMMARY TABLE ══════════════════════════════════════════ -->
     <div class="page" id="page-debt-summary">
       <div class="page-header">
-        <div><div class="page-title">📆 ตารางค่าใช้จ่ายรายเดือน</div><div class="page-sub" id="ds-sub">สรุปรายการทั้งหมดแยกตามเดือน</div></div>
+        <div><div class="page-title">ตารางค่าใช้จ่ายรายเดือน</div><div class="page-sub" id="ds-sub">สรุปรายการทั้งหมดแยกตามเดือน</div></div>
         <div class="toolbar">
           <select class="fsel" id="ds-year-start" onchange="renderDebtSummary('start')" title="ปีเริ่มต้น"><option>2026</option></select>
           <select class="fsel" id="ds-year-end" onchange="renderDebtSummary('end')" title="ปีสิ้นสุด"><option>2026</option></select>
@@ -592,10 +839,17 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
     <!-- ═══ ADMIN ════════════════════════════════════════════════════════ -->
     <div class="page" id="page-admin">
       <div class="page-header">
-        <div><div class="page-title">⚙️ จัดการผู้ใช้</div><div class="page-sub">อนุมัติหรือยกเลิกสิทธิ์สมาชิก</div></div>
+        <div><div class="page-title">จัดการผู้ใช้</div><div class="page-sub">ดูแลผู้ใช้งานของระบบ อนุมัติคำร้อง และกำหนดสิทธิ์การเข้าถึง</div></div>
         <button class="btn btn-ghost btn-sm" onclick="renderAdmin()">↻ รีเฟรช</button>
       </div>
-      <div class="tbox">
+      <div class="kpi-grid admin-summary-grid" id="admin-kpi"></div>
+      <div class="admin-tools">
+        <input class="fsearch" id="admin-search" placeholder="🔍 ค้นหาชื่อหรืออีเมล..." oninput="renderAdminTable()">
+        <select class="fsel" id="admin-status-filter" onchange="renderAdminTable()">
+          <option value="ALL">ทุกสถานะ</option><option value="approved">อนุมัติแล้ว</option><option value="waiting">รอการอนุมัติ</option>
+        </select>
+      </div>
+      <div class="tbox admin-table">
         <div class="tbox-head">
           <span class="tbox-title">รายชื่อสมาชิก</span>
           <span class="tcount" id="admin-count">—</span>
@@ -603,7 +857,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
         <div class="tscroll">
           <table>
             <thead><tr>
-              <th>ชื่อ</th><th>อีเมล</th><th>Role</th><th>สถานะ</th><th>ดู WHO</th><th>สมัครเมื่อ</th><th>จัดการ</th>
+              <th>ชื่อ</th><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>ดูข้อมูล</th><th>สมัครเมื่อ</th><th>จัดการ</th>
             </tr></thead>
             <tbody id="admin-tbody"></tbody>
           </table>
@@ -797,6 +1051,35 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
   </div>
 </div>
 
+<!-- ══ MODAL: ADMIN PASSWORD RESET ═══════════════════════════════════════ -->
+<div class="overlay hidden" id="overlay-admin-password">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="admin-password-title">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="admin-password-title">ตั้งรหัสผ่านใหม่</div>
+        <div class="page-sub" id="admin-password-target" style="margin-top:5px"></div>
+      </div>
+      <button type="button" class="modal-close" aria-label="ปิด" onclick="closeAdminPasswordModal()">✕</button>
+    </div>
+    <div class="auth-msg" id="admin-password-message" role="alert" aria-live="polite"></div>
+    <form id="admin-password-form" onsubmit="saveAdminPassword(event)">
+      <div class="fg" style="margin-bottom:12px">
+        <label class="flabel" for="admin-password-new">รหัสผ่านใหม่</label>
+        <input class="fi" id="admin-password-new" type="password" minlength="8" maxlength="128" autocomplete="new-password" required>
+      </div>
+      <div class="fg">
+        <label class="flabel" for="admin-password-confirm">ยืนยันรหัสผ่านใหม่</label>
+        <input class="fi" id="admin-password-confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required>
+      </div>
+      <div class="fhint" style="margin-top:9px">อย่างน้อย 8 ตัวอักษร ระบบจะไม่ส่งรหัสผ่านให้ผู้ใช้โดยอัตโนมัติ โปรดแจ้งผ่านช่องทางที่ปลอดภัย</div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-blue" id="admin-password-submit">บันทึกรหัสผ่านใหม่</button>
+        <button type="button" class="btn btn-ghost" onclick="closeAdminPasswordModal()">ยกเลิก</button>
+      </div>
+    </form>
+  </section>
+</div>
+
 <!-- ══ MODAL: CONFIRM DELETE ══════════════════════════════════════════════ -->
 <div class="overlay hidden" id="overlay-confirm">
   <div class="modal confirm-modal">
@@ -830,8 +1113,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const MONTHS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 const CAT_COLORS = {
-  'Shopee':'#3d8ef0', 'คชจ.จำเป็น':'#f0524a',
-  'บัตรเครดิต':'#f0b432', 'รายรับ':'#34d17a', 'อื่นๆ':'#9b6cf0'
+  'Shopee':'#3b8bd6', 'คชจ.จำเป็น':'#e56b63',
+  'บัตรเครดิต':'#e2a640', 'รายรับ':'#2eaa7c', 'อื่นๆ':'#8b69d2'
 }
 const TX_PER_PAGE = 50
 
@@ -849,6 +1132,7 @@ let G = {
   debtBackfillDone: false,
   monthlyCollapsed: {},
   monthlyInitDone: false,
+  adminUsers: [],
   page: 'dashboard',
 }
 
@@ -961,8 +1245,9 @@ function showPending() { hide('auth-screen'); show('pending-screen'); hide('app'
 
 async function enterApp() {
   hide('auth-screen'); hide('pending-screen'); show('app')
-  $('rail-name').textContent = G.profile.display_name
-  $('rail-role').textContent = G.profile.role === 'admin' ? '👑 Admin' : '👤 Member'
+  $('rail-name').textContent = `สวัสดี, ${G.profile.display_name}`
+  $('rail-role').textContent = G.profile.role === 'admin' ? 'Admin' : 'Member'
+  $('rail-avatar').textContent = (G.profile.display_name || 'A').trim().charAt(0).toUpperCase()
   if (G.profile.role === 'admin') $('nav-admin').style.display = ''
   applyRoleUI()
   await loadAll()
@@ -1065,35 +1350,61 @@ function renderDash() {
   const income  = rows.filter(t => t.type === 'รายรับ').reduce((s,t)  => s + +t.amount, 0)
   const expense = rows.filter(t => t.type === 'รายจ่าย').reduce((s,t) => s + +t.amount, 0)
   const balance = income - expense
-  const pending = rows.filter(t => !t.status).length
+  const installmentCount = G.debtPlans.filter(d => d.is_active).length
   const label   = year !== 'ALL' ? (month !== 'ALL' ? `${month} ${year}` : `ปี ${year}`) : 'ทั้งหมด'
-  $('dash-sub').textContent = label
+  $('dash-period').textContent = `· ${label}`
 
   $('dash-kpi').innerHTML = `
-    <div class="kpi kpi-inc">
+    <div class="kpi kpi-inc has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="m4 16 5-5 4 3 7-8M14 6h6v6"/></svg></div>
       <div class="kpi-label">รายรับ</div>
       <div class="kpi-val c-green">฿${fmt(income)}</div>
       <div class="kpi-sub">${rows.filter(t=>t.type==='รายรับ').length} รายการ</div>
+      <div class="kpi-spark" aria-hidden="true"><i style="height:15px"></i><i style="height:25px"></i><i style="height:19px"></i><i style="height:34px"></i></div>
     </div>
-    <div class="kpi kpi-exp">
+    <div class="kpi kpi-exp has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M12 4v14m-6-6 6 6 6-6"/></svg></div>
       <div class="kpi-label">รายจ่าย</div>
       <div class="kpi-val c-red">฿${fmt(expense)}</div>
       <div class="kpi-sub">${rows.filter(t=>t.type==='รายจ่าย').length} รายการ</div>
+      <div class="kpi-spark" aria-hidden="true"><i style="height:18px"></i><i style="height:27px"></i><i style="height:20px"></i><i style="height:36px"></i></div>
     </div>
-    <div class="kpi kpi-bal">
+    <div class="kpi kpi-bal has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></div>
       <div class="kpi-label">คงเหลือ</div>
       <div class="kpi-val ${balance>=0?'c-green':'c-red'}">฿${fmt(balance)}</div>
       <div class="kpi-sub">${balance>=0?'บวก':'ขาด'}</div>
+      <div class="kpi-spark" aria-hidden="true"><i style="height:13px"></i><i style="height:23px"></i><i style="height:30px"></i><i style="height:37px"></i></div>
     </div>
-    <div class="kpi kpi-pend">
-      <div class="kpi-label">ค้างชำระ</div>
-      <div class="kpi-val c-amber">${pending}</div>
-      <div class="kpi-sub">รายการที่ยังไม่จ่าย</div>
+    <div class="kpi kpi-pend has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></div>
+      <div class="kpi-label">แผนผ่อนชำระ</div>
+      <div class="kpi-val c-amber">${installmentCount}</div>
+      <div class="kpi-sub">แผนที่กำลังผ่อนชำระ</div>
+      <div class="kpi-spark" aria-hidden="true"><i style="height:14px"></i><i style="height:20px"></i><i style="height:28px"></i><i style="height:36px"></i></div>
     </div>`
 
   renderCatChart(rows)
   renderDebtSummaryChart()
   renderMonthlyChart(rows)
+  renderRecentTransactions(rows)
+}
+
+function renderRecentTransactions(rows) {
+  const sorted = [...(rows || G.transactions)].sort((a, b) => {
+    const ay = (+a.year || 0) * 12 + MONTHS.indexOf(a.month)
+    const by = (+b.year || 0) * 12 + MONTHS.indexOf(b.month)
+    if (ay !== by) return by - ay
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''))
+  }).slice(0, 5)
+  $('dash-recent-body').innerHTML = sorted.length ? sorted.map(t => `
+    <tr>
+      <td style="white-space:nowrap;color:var(--text2)">${escHtml(t.month)} ${escHtml(t.year)}</td>
+      <td style="font-weight:650">${escHtml(t.sub_category)}</td>
+      <td><span class="category-chip">${escHtml(t.category)}</span></td>
+      <td style="text-align:right" class="${t.type==='รายรับ'?'amt-inc':'amt-exp'}">${t.type==='รายรับ'?'+':'−'}฿${fmt(t.amount)}</td>
+      <td>${statusBadge(t)}</td>
+    </tr>`).join('') : '<tr><td colspan="5"><div class="empty" style="padding:24px">ยังไม่มีรายการ</div></td></tr>'
 }
 
 function renderCatChart(rows) {
@@ -1115,55 +1426,64 @@ function renderCatChart(rows) {
 }
 
 function renderDebtSummaryChart() {
-  const active = G.debtPlans.filter(d => d.is_active)
+  const active = G.debtPlans.filter(d => d.is_active && !debtProgress(d).done).map(d => {
+    const p = debtProgress(d)
+    const monthIndex = MONTHS.indexOf(d.start_month) + p.paid
+    const nextYear = +d.start_year + Math.floor(monthIndex / 12)
+    const nextMonth = MONTHS[(monthIndex % 12 + 12) % 12]
+    const amount = d.monthly_amounts?.[p.paid] ?? d.monthly_amount
+    return { d, p, nextYear, nextMonth, amount, dueIndex: nextYear * 12 + MONTHS.indexOf(nextMonth) }
+  }).sort((a,b) => a.dueIndex-b.dueIndex).slice(0,5)
   if (!active.length) {
     $('c-debt').innerHTML = '<div class="empty" style="padding:24px"><div class="empty-ico">✅</div><div>ไม่มีแผนผ่อนที่ใช้งานอยู่</div></div>'
     return
   }
-  const rows = active.map(d => {
-    const p = debtProgress(d)
-    const col = p.done ? 'var(--green)' : d.who.toUpperCase() === 'SKY' ? 'var(--blue)' : 'var(--amber)'
-    return `<div class="bar-row" style="margin-bottom:10px">
-      <div class="bar-lbl" title="${d.name}">${d.name} <span style="font-size:10px;color:var(--text3)">(${d.who})</span></div>
-      <div style="flex:1">
-        <div class="bar-track" style="height:8px;margin-bottom:3px">
-          <div class="bar-fill" style="width:${p.pct}%;background:${col}"></div>
-        </div>
-        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${p.paid}/${d.total_months} งวด · เหลือ ฿${fmt(p.amtRemain)}</div>
-      </div>
-    </div>`
-  }).join('')
-  $('c-debt').innerHTML = `<div style="display:flex;flex-direction:column;gap:4px">${rows}</div>`
+  const iconFor = category => /รถ|ยานพาหนะ/.test(category || '') ? '🚘' : /คอม|อุปกรณ์|ไอที/.test(category || '') ? '💻' : '▣'
+  $('c-debt').innerHTML = `<div class="upcoming-list">${active.map(({d,p,nextYear,nextMonth,amount}) => `
+    <div class="upcoming-row">
+      <div class="upcoming-icon">${iconFor(d.category)}</div>
+      <div><div class="upcoming-name" title="${escHtml(d.name)}">${escHtml(d.name)}</div><div class="upcoming-meta">งวดที่ ${p.paid+1}/${d.total_months} · เหลือ ฿${fmt(p.amtRemain)}</div></div>
+      <div class="upcoming-date">${nextMonth} ${nextYear}</div>
+      <div class="upcoming-amount">฿${fmt(amount)}</div><span class="upcoming-arrow">›</span>
+    </div>`).join('')}</div>`
 }
 
 function renderMonthlyChart(rows) {
   const all = rows || G.transactions
   const byMonth = {}
   all.forEach(t => {
-    const key = `${t.year}-${String(MONTHS.indexOf(t.month)+1).padStart(2,'0')}`
-    if (!byMonth[key]) byMonth[key] = {inc:0, exp:0, label: `${t.month} ${t.year}`}
-    if (t.type === 'รายรับ') byMonth[key].inc += +t.amount
-    else byMonth[key].exp += +t.amount
+    const monthIndex = MONTHS.indexOf(t.month)
+    if (monthIndex < 0) return
+    const key = `${+t.year}-${monthIndex}`
+    if (!byMonth[key]) byMonth[key] = 0
+    if (t.type === 'รายจ่าย') byMonth[key] += +t.amount
   })
-  const keys = Object.keys(byMonth).sort().slice(-12)
-  if (!keys.length) { $('c-monthly').innerHTML = '<div class="empty"><div>ไม่มีข้อมูล</div></div>'; return }
-  const maxVal = Math.max(...keys.flatMap(k => [byMonth[k].inc, byMonth[k].exp]), 1)
-  const cols = keys.map(k => {
-    const d = byMonth[k]; const iH = (d.inc/maxVal*85).toFixed(1); const eH = (d.exp/maxVal*85).toFixed(1)
-    const lbl = d.label.replace(' ','<br>')
+  const periodKeys = Object.keys(byMonth).map(k => k.split('-').map(Number))
+  if (!periodKeys.length) { $('c-monthly').innerHTML = '<div class="empty"><div>ไม่มีข้อมูล</div></div>'; return }
+  const lastPeriod = Math.max(...periodKeys.map(([y,m]) => y*12+m))
+  const selectedYear = $('d-year')?.value || 'ALL'
+  const periodEnd = selectedYear !== 'ALL' ? (+selectedYear*12+11) : lastPeriod
+  const keys = Array.from({length:12},(_,i) => periodEnd-11+i)
+  const values = keys.map(i => byMonth[`${Math.floor(i/12)}-${i%12}`] || 0)
+  const maxVal = Math.max(...values, 1)
+  const axisUnit = 10 ** (Math.floor(Math.log10(maxVal)) - 1)
+  const axisMax = Math.ceil(maxVal / 4 / axisUnit) * axisUnit * 4
+  const axisFmt = n => new Intl.NumberFormat('th-TH', {maximumFractionDigits:0}).format(n)
+  const axis = [1,.75,.5,.25,0].map(n => `<span>${n===0?'฿0':'฿'+axisFmt(axisMax*n)}</span>`).join('')
+  const cols = keys.map((period,i) => {
+    const year = Math.floor(period/12)
+    const monthIndex = (period%12+12)%12
+    const value = values[i]
+    const eH = value ? Math.max(3, value/axisMax*168).toFixed(1) : '2'
+    const tip = `${MONTH_TH[monthIndex]} ${year} · ฿${fmt(value)}`
     return `<div class="mc-col">
       <div class="mc-bars">
-        <div class="mc-bar" style="height:${iH}px;background:var(--green);width:13px" data-tip="รายรับ ฿${fmt(d.inc)}"></div>
-        <div class="mc-bar" style="height:${eH}px;background:var(--red);width:13px"   data-tip="รายจ่าย ฿${fmt(d.exp)}"></div>
+        <div class="mc-bar" style="height:${eH}px;background:linear-gradient(180deg,#63c99b,#20a875);width:22px" data-tip="${tip}"></div>
       </div>
-      <div class="mc-lbl">${lbl}</div>
+      <div class="mc-lbl">${MONTH_TH[monthIndex]}</div>
     </div>`
   }).join('')
-  $('c-monthly').innerHTML = `<div class="month-chart">${cols}</div>
-    <div style="display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text2)">
-      <span><span style="color:var(--green)">█</span> รายรับ</span>
-      <span><span style="color:var(--red)">█</span> รายจ่าย</span>
-    </div>`
+  $('c-monthly').innerHTML = `<div class="month-chart"><div class="chart-axis">${axis}</div><div class="chart-plot">${cols}</div></div>`
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1628,29 +1948,32 @@ function renderDebts() {
   const activePlans = G.debtPlans.filter(d => d.is_active)
   const totalMonthly  = activePlans.reduce((s,d) => s + +d.monthly_amount, 0)
   const totalRemain   = activePlans.reduce((s,d) => s + debtProgress(d).amtRemain, 0)
-  const myPlans       = activePlans.filter(d => d.who.toUpperCase() !== 'SKY' && d.who.toUpperCase() !== (G.profile?.display_name||'').toUpperCase())
-  const friendMonthly = myPlans.reduce((s,d) => s + +d.monthly_amount, 0)
+  const monthlyAverage = activePlans.length ? totalMonthly / activePlans.length : 0
 
   $('debt-kpi').innerHTML = `
-    <div class="kpi kpi-exp">
+    <div class="kpi kpi-exp has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></div>
       <div class="kpi-label">ยอดผ่อนรวม/เดือน</div>
       <div class="kpi-val c-red">฿${fmt(totalMonthly)}</div>
-      <div class="kpi-sub">${activePlans.length} แผนที่ active</div>
+      <div class="kpi-sub">จาก ${activePlans.length} แผนที่กำลังผ่อน</div>
     </div>
-    <div class="kpi kpi-bal">
+    <div class="kpi kpi-pend has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M12 4v14m-6-6 6 6 6-6"/></svg></div>
       <div class="kpi-label">หนี้คงเหลือทั้งหมด</div>
       <div class="kpi-val c-amber">฿${fmt(totalRemain)}</div>
       <div class="kpi-sub">รวมทุกแผน</div>
     </div>
-    <div class="kpi" style="--kpi-color:var(--purple)">
-      <div class="kpi-label" style="color:var(--text3)">ยอดเพื่อน/เดือน</div>
-      <div class="kpi-val c-purple">฿${fmt(friendMonthly)}</div>
-      <div class="kpi-sub">แผนที่ไม่ใช่ของเรา</div>
+    <div class="kpi kpi-purple has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg></div>
+      <div class="kpi-label">เฉลี่ยต่อเดือน</div>
+      <div class="kpi-val c-purple">฿${fmt(monthlyAverage)}</div>
+      <div class="kpi-sub">เฉลี่ยต่อ 1 แผน</div>
     </div>
-    <div class="kpi kpi-pend">
+    <div class="kpi kpi-bal has-icon">
+      <div class="kpi-icon"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></div>
       <div class="kpi-label">แผนทั้งหมด</div>
-      <div class="kpi-val c-blue">${G.debtPlans.length}</div>
-      <div class="kpi-sub">active: ${activePlans.length}</div>
+      <div class="kpi-val c-blue">${activePlans.length}</div>
+      <div class="kpi-sub">แผนที่กำลังผ่อนชำระ</div>
     </div>`
 
   if (!plans.length) {
@@ -2088,9 +2411,27 @@ async function renderAdmin() {
   showLoading(false)
   if (error) { toast('โหลดข้อมูลผู้ใช้ล้มเหลว: ' + error.message, 'err'); return }
 
-  const users = data || []
-  $('admin-count').textContent = `${users.length} คน (รอ ${users.filter(u=>!u.is_approved).length} คน)`
+  G.adminUsers = data || []
+  const users = G.adminUsers
+  const waiting = users.filter(u => !u.is_approved).length
+  const admins = users.filter(u => u.role === 'admin').length
+  $('admin-count').textContent = `${users.length} คน (รอ ${waiting} คน)`
+  $('admin-kpi').innerHTML = `
+    <div class="kpi kpi-inc has-icon"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20M9.5 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM16 11a3 3 0 1 0-1.2-5.8M17 14.7a4 4 0 0 1 4 3.8V20"/></svg></div><div class="kpi-label">ผู้ใช้ทั้งหมด</div><div class="kpi-val c-green">${users.length} คน</div><div class="kpi-sub">สมาชิกในระบบทั้งหมด</div><div class="kpi-spark" aria-hidden="true"><i style="height:14px"></i><i style="height:23px"></i><i style="height:31px"></i><i style="height:38px"></i></div></div>
+    <div class="kpi kpi-pend has-icon"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="kpi-label">รอการอนุมัติ</div><div class="kpi-val c-amber">${waiting} คน</div><div class="kpi-sub">คำร้องที่รอการตรวจสอบ</div><div class="kpi-spark" aria-hidden="true"><i style="height:16px"></i><i style="height:25px"></i><i style="height:32px"></i><i style="height:40px"></i></div></div>
+    <div class="kpi kpi-bal has-icon"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/></svg></div><div class="kpi-label">ผู้ดูแลระบบ</div><div class="kpi-val c-blue">${admins} คน</div><div class="kpi-sub">มีสิทธิ์เข้าถึงการตั้งค่าระบบ</div><div class="kpi-spark" aria-hidden="true"><i style="height:14px"></i><i style="height:23px"></i><i style="height:31px"></i><i style="height:38px"></i></div></div>`
+  renderAdminTable()
+}
 
+function renderAdminTable() {
+  const q = ($('admin-search')?.value || '').trim().toLowerCase()
+  const status = $('admin-status-filter')?.value || 'ALL'
+  const users = G.adminUsers.filter(u => {
+    if (status === 'approved' && !u.is_approved) return false
+    if (status === 'waiting' && u.is_approved) return false
+    if (q && !`${u.display_name || ''} ${u.email || ''}`.toLowerCase().includes(q)) return false
+    return true
+  })
   if (!users.length) {
     $('admin-tbody').innerHTML = '<tr><td colspan="7"><div class="empty">ไม่มีสมาชิก</div></td></tr>'
     return
@@ -2123,7 +2464,8 @@ async function renderAdmin() {
         onchange="adminSetWhoTag('${u.id}', this.value)">${opts}</select>`
     }
 
-    const actions = isMe ? '<span style="font-size:11px;color:var(--text3)">— (คุณ) —</span>' : `
+    const passwordAction = `<button class="btn btn-ghost btn-xs" style="margin-left:4px" title="ตั้งรหัสผ่านใหม่" aria-label="ตั้งรหัสผ่านใหม่ให้ ${escHtml(u.display_name || u.email)}" onclick="openAdminPasswordModal('${u.id}')">🔑 รหัสผ่าน</button>`
+    const actions = isMe ? passwordAction : `
       ${!u.is_approved
         ? `<button class="btn btn-green btn-xs" onclick="adminApprove('${u.id}',true)">✓ อนุมัติ</button>`
         : `<button class="btn btn-ghost btn-xs" onclick="adminApprove('${u.id}',false)">✕ ยกเลิก</button>`
@@ -2131,11 +2473,12 @@ async function renderAdmin() {
       ${u.role !== 'admin'
         ? `<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="adminSetRole('${u.id}','admin')">▲ Admin</button>`
         : `<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="adminSetRole('${u.id}','member')">▼ Member</button>`
-      }`
+      }
+      ${passwordAction}`
 
     return `<tr class="${!u.is_approved ? 'user-row-pending' : ''}">
       <td style="font-weight:600">${escHtml(u.display_name)}</td>
-      <td style="font-family:var(--mono);font-size:12px">${escHtml(u.email)}</td>
+      <td style="font-family:var(--sans);font-size:12px">${escHtml(u.email)}</td>
       <td>${roleBadge}</td>
       <td>${approvedBadge}</td>
       <td>${whoCell}</td>
@@ -2167,6 +2510,89 @@ async function adminSetWhoTag(userId, whoTag) {
   const { error } = await db.rpc('admin_set_who_tag', { p_user_id: userId, p_who_tag: whoTag })
   if (error) { toast('อัปเดตล้มเหลว: ' + error.message, 'err'); return }
   toast(whoTag ? `✓ กำหนด WHO = ${whoTag} แล้ว` : '✓ ล้างค่า WHO แล้ว')
+}
+
+let _adminPasswordTargetId = null
+let _adminPasswordSaving = false
+
+function openAdminPasswordModal(userId) {
+  if (G.profile?.role !== 'admin') return toast('เฉพาะ Admin เท่านั้นที่เปลี่ยนรหัสผ่านได้', 'err')
+  const target = G.adminUsers.find(u => u.id === userId)
+  if (!target) return toast('ไม่พบผู้ใช้รายนี้ กรุณารีเฟรชข้อมูล', 'err')
+
+  _adminPasswordTargetId = target.id
+  $('admin-password-form').reset()
+  $('admin-password-message').className = 'auth-msg'
+  $('admin-password-message').textContent = ''
+  $('admin-password-target').textContent = `${target.display_name || 'ไม่ระบุชื่อ'} · ${target.email || ''}${target.id === G.user?.id ? ' (บัญชีของคุณ)' : ''}`
+  $('admin-password-submit').disabled = false
+  $('admin-password-submit').textContent = 'บันทึกรหัสผ่านใหม่'
+  show('overlay-admin-password')
+  requestAnimationFrame(() => $('admin-password-new').focus())
+}
+
+function closeAdminPasswordModal() {
+  if (_adminPasswordSaving) return
+  hide('overlay-admin-password')
+  $('admin-password-form')?.reset()
+  _adminPasswordTargetId = null
+}
+
+function showAdminPasswordError(message) {
+  const box = $('admin-password-message')
+  box.className = 'auth-msg err'
+  box.textContent = message
+}
+
+async function saveAdminPassword(event) {
+  event.preventDefault()
+  if (_adminPasswordSaving) return
+  if (G.profile?.role !== 'admin') {
+    showAdminPasswordError('เซสชันนี้ไม่มีสิทธิ์ Admin แล้ว กรุณาเข้าสู่ระบบใหม่')
+    return
+  }
+
+  const target = G.adminUsers.find(u => u.id === _adminPasswordTargetId)
+  const password = $('admin-password-new').value
+  const confirmPassword = $('admin-password-confirm').value
+  if (!target) return showAdminPasswordError('ไม่พบผู้ใช้รายนี้ กรุณาปิดหน้าต่างแล้วรีเฟรชข้อมูล')
+  if (Array.from(password).length < 8) return showAdminPasswordError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+  if (new TextEncoder().encode(password).byteLength > 512) return showAdminPasswordError('รหัสผ่านยาวเกินไป (สูงสุด 128 ตัวอักษร)')
+  if (password !== confirmPassword) return showAdminPasswordError('รหัสผ่านทั้งสองช่องไม่ตรงกัน')
+
+  const submit = $('admin-password-submit')
+  _adminPasswordSaving = true
+  submit.disabled = true
+  submit.textContent = 'กำลังบันทึก...'
+  try {
+    const { error } = await db.functions.invoke('admin-set-user-password', {
+      body: { targetUserId: target.id, password },
+    })
+    if (error) {
+      let message = 'เปลี่ยนรหัสผ่านไม่สำเร็จ กรุณาตรวจเงื่อนไขรหัสผ่านของ Supabase Auth'
+      if (error.context instanceof Response) {
+        const result = await error.context.json().catch(() => null)
+        if (typeof result?.error === 'string') message = result.error
+      }
+      showAdminPasswordError(message)
+      return
+    }
+
+    const targetName = target.display_name || target.email || 'ผู้ใช้'
+    hide('overlay-admin-password')
+    $('admin-password-form').reset()
+    _adminPasswordTargetId = null
+    toast(`เปลี่ยนรหัสผ่านของ ${targetName} แล้ว`)
+  } catch (error) {
+    console.error('[admin password reset error]', error)
+    showAdminPasswordError('เชื่อมต่อบริการเปลี่ยนรหัสผ่านไม่สำเร็จ กรุณาลองใหม่')
+  } finally {
+    _adminPasswordSaving = false
+    if ($('overlay-admin-password') && !$('overlay-admin-password').classList.contains('hidden')) {
+      submit.disabled = false
+      submit.textContent = 'บันทึกรหัสผ่านใหม่'
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -2295,14 +2721,18 @@ function closeRail()   { $('rail').classList.remove('open') }
 // ── KEYBOARD SHORTCUTS ──────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    hide('overlay-tx'); hide('overlay-debt'); closeConfirm()
+    hide('overlay-tx'); hide('overlay-debt'); closeConfirm(); closeAdminPasswordModal()
   }
 });
 
 // ── CLICK OUTSIDE MODALS ────────────────────────────────────────────────
-;['overlay-tx','overlay-debt','overlay-confirm'].forEach(id => {
+;['overlay-tx','overlay-debt','overlay-confirm','overlay-admin-password'].forEach(id => {
   const el = $(id)
-  if (el) el.addEventListener('click', e => { if (e.target.id === id) hide(id) })
+  if (el) el.addEventListener('click', e => {
+    if (e.target.id !== id) return
+    if (id === 'overlay-admin-password') closeAdminPasswordModal()
+    else hide(id)
+  })
 });
 
 // ── LOGIN ON ENTER ──────────────────────────────────────────────────────

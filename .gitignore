@@ -1,0 +1,4 @@
+node_modules/
+.claude/
+supabase/.temp/
+supabase/functions/.env
