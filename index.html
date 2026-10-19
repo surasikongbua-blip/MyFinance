@@ -280,13 +280,27 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 .user-row-pending{background:rgba(240,180,50,.04)}
 
 /* ── DEBT SUMMARY TABLE ─────────────────────────────────────────────────── */
-.ds-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);margin-bottom:20px}
+.ds-wrap{
+  max-height:calc(100vh - 180px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-color:#9caec0 #eaf0f6;
+  scrollbar-width:thin;
+  border-radius:var(--r);
+  border:1px solid var(--line);
+  background:var(--surface);
+  margin-bottom:20px
+}
+.ds-wrap::-webkit-scrollbar{width:12px;height:14px}
+.ds-wrap::-webkit-scrollbar-track{background:#eaf0f6;border-radius:999px}
+.ds-wrap::-webkit-scrollbar-thumb{background:#b8c5d4;border:3px solid #eaf0f6;border-radius:999px}
+.ds-wrap::-webkit-scrollbar-thumb:hover{background:#899bb0}
 .ds-table{border-collapse:collapse;min-width:100%;font-size:12px}
 .ds-table th,.ds-table td{padding:7px 10px;white-space:nowrap;border-bottom:1px solid var(--line2)}
-.ds-table thead th{background:var(--surface2);font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);position:sticky;top:0;z-index:2}
+.ds-table thead th{background:var(--surface2);font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);position:sticky;top:0;z-index:3}
 .ds-table thead th.ds-cur{background:rgba(61,142,240,.18);color:var(--blue)}
 .ds-table .ds-sticky{position:sticky;left:0;z-index:1;background:var(--surface)}
-.ds-table thead .ds-sticky{background:var(--surface2);z-index:3}
+.ds-table thead .ds-sticky{background:var(--surface2);z-index:5}
 .ds-table tbody tr:hover td{background:rgba(61,142,240,.04)}
 .ds-table tbody tr:hover .ds-sticky{background:rgba(61,142,240,.06)}
 .ds-table .ds-name{min-width:150px;max-width:200px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--text)}
@@ -296,7 +310,8 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
 .ds-table .ds-amt.ds-cur{color:var(--blue);font-weight:700}
 .ds-table .ds-amt.ds-active{color:var(--text)}
 .ds-table .ds-amt.ds-cur.ds-active{color:var(--blue);font-weight:800}
-.ds-table .ds-total-row td{background:var(--surface2);font-weight:700;border-top:2px solid var(--line)}
+.ds-table .ds-total-row td{position:sticky;bottom:0;z-index:3;background:var(--surface2);font-weight:700;border-top:2px solid var(--line);box-shadow:0 -1px 0 var(--line)}
+.ds-table .ds-total-row .ds-sticky{z-index:5}
 .ds-table .ds-total-row .ds-amt{color:var(--red);font-size:12px}
 .ds-table .ds-total-row .ds-amt.ds-cur{color:var(--blue)}
 .ds-yr-head{text-align:center;border-bottom:1px solid var(--line2);background:var(--surface3) !important;color:var(--text2) !important;font-size:10px;letter-spacing:.05em}
@@ -326,6 +341,7 @@ tfoot td{padding:9px 12px;font-size:12px;border-top:1px solid var(--line);backgr
   .rail{transform:translateX(-100%);transition:transform .25s}
   .rail.open{transform:none}
   .main{margin-left:0;padding:16px}
+  .ds-wrap{max-height:calc(100dvh - 240px)}
   .kpi-grid{grid-template-columns:1fr 1fr}
   .debt-grid{grid-template-columns:1fr}
   .fg-grid{grid-template-columns:1fr}
